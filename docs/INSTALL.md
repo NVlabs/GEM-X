@@ -2,8 +2,8 @@
 
 ## Prerequisites
 
-- Python 3.10+
-- CUDA-compatible GPU with drivers supporting CUDA 12.4+
+- Python 3.12+
+- CUDA-compatible GPU with drivers supporting CUDA 12.6+
 - [Git LFS](https://git-lfs.github.com/) (required for SOMA body model assets)
 - [uv](https://github.com/astral-sh/uv) (fast Python package manager)
 
@@ -23,7 +23,7 @@ git submodule update --init --recursive
 
 ```bash
 pip install uv
-uv venv .venv --python 3.10
+uv venv .venv --python 3.12
 source .venv/bin/activate
 ```
 
@@ -37,7 +37,6 @@ uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu
 
 | CUDA Version | Index URL |
 |---|---|
-| CUDA 12.4 | `https://download.pytorch.org/whl/cu124` |
 | CUDA 12.6 | `https://download.pytorch.org/whl/cu126` |
 | CUDA 13.0 | `https://download.pytorch.org/whl/cu130` |
 
