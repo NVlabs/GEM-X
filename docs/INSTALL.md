@@ -56,7 +56,20 @@ bash scripts/install_env.sh
 
 This installs the `gem` package in editable mode along with Detectron2 for human detection.
 
-## Step 6 — Third-party model assets
+## Step 6 — (Optional) Install SOMA Retargeter for humanoid robot retargeting
+
+To enable `--retarget` mode (retarget recovered motion to the Unitree G1 robot):
+
+```bash
+uv pip install -e third_party/soma-retargeter
+```
+
+> **Note:** The soma-retargeter submodule requires SSH access. If `third_party/soma-retargeter` is empty, run:
+> ```bash
+> git submodule update --init third_party/soma-retargeter
+> ```
+
+## Step 7 — Third-party model assets
 
 **SOMA body model** — follow `third_party/soma/README.md` and place model assets under `inputs/soma_assets/`.
 

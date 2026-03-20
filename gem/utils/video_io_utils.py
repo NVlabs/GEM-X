@@ -190,6 +190,18 @@ def merge_videos_horizontal(in_video_paths: list, out_video_path: str):
     ffmpeg.run(output, overwrite_output=True, quiet=True)
 
 
+def merge_videos_grid_2x2(in_video_paths: list, out_video_path: str):
+    """Merge exactly 4 videos into a 2x2 grid: [top-left, top-right, bottom-left, bottom-right]."""
+    if len(in_video_paths) != 4:
+        raise ValueError("Exactly four video paths are required for 2x2 grid merge.")
+    inputs = [ffmpeg.input(path) for path in in_video_paths]
+    top_row = ffmpeg.filter([inputs[0], inputs[1]], "hstack", inputs=2)
+    bottom_row = ffmpeg.filter([inputs[2], inputs[3]], "hstack", inputs=2)
+    grid = ffmpeg.filter([top_row, bottom_row], "vstack", inputs=2)
+    output = ffmpeg.output(grid, out_video_path)
+    ffmpeg.run(output, overwrite_output=True, quiet=True)
+
+
 def merge_videos_vertical(in_video_paths: list, out_video_path: str):
     if len(in_video_paths) < 2:
         raise ValueError("At least two video paths are required for merging.")

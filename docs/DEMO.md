@@ -4,8 +4,8 @@
 
 ```
 Input Video → Human Detection → 2D Keypoints (VitPose) → Features (SAM3D) → GEM Model → 3D Pose (SOMA)
-                                      ↓
-                              2D Keypoint Overlay
+                                      ↓                                                        ↓
+                              2D Keypoint Overlay                              (Optional) Retarget → G1 Robot Motion
 ```
 
 ## Full 3D Pipeline (`demo_soma.py`)
@@ -32,6 +32,7 @@ python scripts/demo/demo_soma.py \
 | `--detector_name` | `vitdet` | Human detector: `vitdet` or `sam3`. Set empty to skip. |
 | `--verbose` | off | Save debug overlays (bbox, pose) |
 | `--render_mhr` | off | Render MHR identity model |
+| `--retarget` | off | Retarget motion to Unitree G1 robot (requires soma-retargeter) |
 
 ### Outputs
 
@@ -46,11 +47,26 @@ Results are saved to `<output_root>/<video_name>/`:
 | `preprocess/bbx.pt` | Detected bounding boxes |
 | `preprocess/vitpose.pt` | 2D keypoints (77 joints) |
 | `preprocess/hpe_results.pt` | Full 3D pose prediction |
+| `<video_name>_retarget_g1.bvh` | G1 robot motion in BVH format (with `--retarget`) |
+| `<video_name>_retarget_g1.csv` | G1 robot joint angles (with `--retarget`) |
+| `<video_name>_4_g1_retarget.mp4` | G1 robot motion video (with `--retarget`) |
 
 ### Preprocessing Fallbacks
 
 - When no pre-computed `bbx.pt` exists, the demo runs human detection via ViTDet (`--detector_name vitdet`).
 - If VO modules are unavailable, the demo falls back to a static camera trajectory.
+
+## Humanoid Robot Retargeting (`--retarget`)
+
+Retarget the recovered SOMA motion to a Unitree G1 humanoid robot:
+
+```bash
+python scripts/demo/demo_soma.py \
+  --video path/to/video.mp4 \
+  --retarget
+```
+
+This requires the soma-retargeter package (see [Installation](INSTALL.md)). The output includes a G1 robot motion video and joint angle CSV. When `--retarget` is used, the final composite video shows a 2×2 grid: 2D keypoints, in-camera mesh, global mesh, and G1 robot motion.
 
 ## 2D Keypoint-Only Demo (`demo_2d_keypoints.py`)
 

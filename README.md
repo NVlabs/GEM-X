@@ -18,10 +18,13 @@
 <p align="center">
   <img src="assets/demo_2d_keypoints.gif" width="30%" alt="2D Keypoint Overlay">
   <img src="assets/demo_incam_mesh.gif" width="30%" alt="In-Camera Mesh">
-  <img src="assets/demo_global_mesh.gif" width="30%" alt="Side-by-Side Global">
 </p>
 <p align="center">
-  <sub>2D Keypoint Overlay &nbsp;|&nbsp; In-Camera Mesh &nbsp;|&nbsp; Global Mesh</sub>
+  <img src="assets/demo_global_mesh.gif" width="30%" alt="Global Mesh">
+  <img src="assets/demo_g1_retarget.gif" width="30%" alt="G1 Robot Retarget">
+</p>
+<p align="center">
+  <sub>2D Keypoint Overlay &nbsp;|&nbsp; In-Camera Mesh &nbsp;|&nbsp; Global Mesh &nbsp;|&nbsp; Retargeted G1 Motion</sub>
 </p>
 
 
@@ -35,6 +38,7 @@ GEM is a video-based 3D human pose estimation model developed by NVIDIA. It reco
 - **Bundled 2D keypoint detector** — 2D pose estimator trained for SOMA 77-joint skeleton
 - **Camera-space motion recovery** — camera-space human motion estimation from dynamic monocular video
 - **World-space motion recovery** — world-space human motion estimation from dynamic monocular video
+- **Humanoid robot retargeting** — retarget recovered motion to Unitree G1 robot via [SOMA Retargeter](https://github.com/NVIDIA/soma-retargeter)
 - **Apache 2.0 licensed** — commercially usable, trained on NVIDIA-owned data only
 
 ## Research Version: Multi-Modal Conditioning
@@ -48,13 +52,17 @@ Looking for **multi-modal motion generation** (text, audio, music conditioning)?
 git clone --recursive https://github.com/NVlabs/GEM-X.git && cd GEM-X
 
 # 2. Setup environment
-pip install uv && uv venv .venv --python 3.10 && source .venv/bin/activate
+pip install uv && uv venv .venv --python 3.12 && source .venv/bin/activate
 uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
 uv pip install -e third_party/soma && cd third_party/soma && git lfs pull && cd ../..
 bash scripts/install_env.sh
 
 # 3. Run demo
 python scripts/demo/demo_soma.py --video path/to/video.mp4 --ckpt inputs/pretrained/gem_soma.ckpt
+
+# 4. (Optional) Retarget to G1 robot
+uv pip install -e third_party/soma-retargeter
+python scripts/demo/demo_soma.py --video path/to/video.mp4 --retarget
 ```
 
 See [docs/INSTALL.md](docs/INSTALL.md) for detailed installation instructions.

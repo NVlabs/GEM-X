@@ -43,6 +43,7 @@ from gem.utils.video_io_utils import (
     get_video_lwh,
     get_video_reader,
     get_writer,
+    merge_videos_grid_2x2,
     merge_videos_horizontal,
     read_video_np,
     save_video,
@@ -83,6 +84,7 @@ def _parse_args():
         default="vitdet",
         help="Human detector: 'vitdet' (Detectron2) or 'sam3'. Set empty to skip detection.",
     )
+    parser.add_argument("--retarget", action="store_true", help="Retarget SOMA motion to G1 robot")
     return parser.parse_args()
 
 
@@ -472,9 +474,23 @@ def main():
 
     render_incam(cfg, fps=fps)
     render_global_o3d(cfg, fps=fps)
-    merge_videos_horizontal(
-        [cfg.paths.incam_video, cfg.paths.global_video], cfg.paths.incam_global_horiz_video
-    )
+
+    if args.retarget:
+        from scripts.demo.retarget_utils import render_g1_robot, run_retarget
+
+        pred = torch.load(cfg.paths.hpe_results)
+        body_params_global = _get_body_params(pred, "body_params_global")
+        csv_buffer = run_retarget(body_params_global, fps, cfg.paths.retarget_csv)
+        render_g1_robot(cfg, csv_buffer, fps=fps)
+        kp2d_video = str(Path(cfg.output_dir) / "0_kp2d77_overlay.mp4")
+        merge_videos_grid_2x2(
+            [kp2d_video, cfg.paths.incam_video, cfg.paths.global_video, cfg.paths.retarget_video],
+            cfg.paths.incam_global_horiz_video,
+        )
+    else:
+        merge_videos_horizontal(
+            [cfg.paths.incam_video, cfg.paths.global_video], cfg.paths.incam_global_horiz_video
+        )
     Log.info(f"[Done] Outputs in {cfg.output_dir}")
 
 

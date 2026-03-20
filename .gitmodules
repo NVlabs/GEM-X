@@ -4,3 +4,6 @@
 [submodule "third_party/soma"]
 	path = third_party/soma
 	url = https://github.com/NVlabs/SOMA-X.git
+[submodule "third_party/soma-retargeter"]
+	path = third_party/soma-retargeter
+	url = git@github.com:NVIDIA/soma-retargeter.git

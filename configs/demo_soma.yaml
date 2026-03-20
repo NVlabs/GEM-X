@@ -37,3 +37,5 @@ paths:
   incam_video: ${output_dir}/${video_name}_1_incam.mp4
   global_video: ${output_dir}/${video_name}_2_global.mp4
   incam_global_horiz_video: ${output_dir}/${video_name}_3_incam_global_horiz.mp4
+  retarget_csv: ${output_dir}/${video_name}_retarget_g1.csv
+  retarget_video: ${output_dir}/${video_name}_4_g1_retarget.mp4

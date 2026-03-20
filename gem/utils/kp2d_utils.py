@@ -294,7 +294,7 @@ def render_2d_keypoints(video_path, vitpose_path, bbx_path, output_path, fps=30,
     assert vitpose.ndim == 3 and vitpose.shape[-1] >= 2, "vitpose expected (L, J, 2/3)"
 
     bbx = _torch_load(bbx_path)
-    bbx_xys = bbx.get("detected_bbx_xys", bbx.get("bbx_xys", None))
+    bbx.get("detected_bbx_xys", bbx.get("bbx_xys", None))
 
     reader = get_video_reader(video_path)
     writer = _open_cv2_writer(
@@ -355,13 +355,13 @@ def render_2d_keypoints(video_path, vitpose_path, bbx_path, output_path, fps=30,
                 cv2.circle(img, (x, y), 4, (0, 0, 0), -1, cv2.LINE_AA)
                 cv2.circle(img, (x, y), 3, _COCO_JOINT_COLORS[j], -1, cv2.LINE_AA)
 
-        # Draw bounding box
-        if bbx_xys is not None and i < len(bbx_xys):
-            cx, cy, s = bbx_xys[i].detach().cpu().numpy().tolist()
-            half = 0.5 * float(s)
-            bx0, by0 = int(round(cx - half)), int(round(cy - half))
-            bx1, by1 = int(round(cx + half)), int(round(cy + half))
-            cv2.rectangle(img, (bx0, by0), (bx1, by1), (0, 255, 255), 2, cv2.LINE_AA)
+        # # Draw bounding box
+        # if bbx_xys is not None and i < len(bbx_xys):
+        #     cx, cy, s = bbx_xys[i].detach().cpu().numpy().tolist()
+        #     half = 0.5 * float(s)
+        #     bx0, by0 = int(round(cx - half)), int(round(cy - half))
+        #     bx1, by1 = int(round(cx + half)), int(round(cy + half))
+        #     cv2.rectangle(img, (bx0, by0), (bx1, by1), (0, 255, 255), 2, cv2.LINE_AA)
 
         writer.write(img[..., ::-1])
     writer.release()

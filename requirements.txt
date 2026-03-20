@@ -25,7 +25,6 @@ safetensors==0.7.0
 
 # 3D
 trimesh==4.11.3
-open3d==0.19.0
 
 # ML
 transformers==5.3.0
