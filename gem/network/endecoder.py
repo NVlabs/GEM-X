@@ -3,6 +3,7 @@
 import torch
 import torch.nn as nn
 
+import gem.utils.matrix as matrix
 from gem.utils.motion_utils import get_local_transl_vel, get_static_joint_mask
 from gem.utils.rotation_conversions import (
     axis_angle_to_matrix,
@@ -83,15 +84,8 @@ class EnDecoder(nn.Module):
     def get_static_gt(self, inputs, vel_thr):
         if "soma_params_w" in inputs:
             # SOMA77: [L_ankle, L_foot, R_ankle, R_foot, L_wrist, R_wrist]
-            joint_ids = [67, 69, 72, 74, 14, 42]
-            if self.soma_model is None:
-                self.soma_model = SomaLayer(
-                    data_root="inputs/soma_assets",
-                    low_lod=True,
-                    device="cuda",
-                    identity_model_type="mhr",
-                    mode="warp",
-                )
+            joint_ids = [69, 70, 74, 75, 14, 42]
+            self._ensure_soma_model()
             soma_params_w = {k: v.float().cpu() for k, v in inputs["soma_params_w"].items()}
             gt_w_j3d = self.soma_model(**soma_params_w)["joints"].to(
                 inputs["soma_params_w"]["body_pose"].device
@@ -104,6 +98,67 @@ class EnDecoder(nn.Module):
         static_gt = get_static_joint_mask(gt_w_j3d, vel_thr=vel_thr, repeat_last=True)  # (B, L, J)
         static_gt = static_gt[:, :, joint_ids].float()  # (B, L, J')
         return static_gt
+
+    def _ensure_soma_model(self):
+        """Lazily initialize the SOMA body model."""
+        if self.soma_model is None:
+            self.soma_model = SomaLayer(
+                data_root="inputs/soma_assets",
+                low_lod=True,
+                device="cuda",
+                identity_model_type="mhr",
+                mode="warp",
+            )
+
+    def fk_v2(
+        self,
+        body_pose,
+        identity_coeffs=None,
+        scale_params=None,
+        global_orient=None,
+        transl=None,
+        get_intermediate=False,
+        **kwargs,
+    ):
+        """Forward kinematics using SOMA body model.
+
+        Args:
+            body_pose: (B, L, (J-1)*3) axis-angle
+            identity_coeffs: (B, L, C)
+            scale_params: (B, L, S)
+            global_orient: (B, L, 3) axis-angle
+            transl: (B, L, 3)
+            get_intermediate: if True, return (joints, local_mat, fk_mat)
+
+        Returns:
+            joints: (B, L, 77, 3), or (joints, local_mat, fk_mat) when get_intermediate=True
+        """
+        B, L = body_pose.shape[:2]
+        if global_orient is None:
+            global_orient = torch.zeros((B, L, 3), device=body_pose.device)
+        aa = torch.cat([global_orient, body_pose], dim=-1).reshape(B, L, -1, 3)
+        rotmat = axis_angle_to_matrix(aa)  # (B, L, J, 3, 3)
+
+        self._ensure_soma_model()
+        skeleton = self.soma_model.get_skeleton(
+            identity_coeffs.float(), scale_params.float()
+        )  # (B, L, 77, 3)
+        parents = self.soma_model.parents
+        parents_tensor = torch.tensor(parents, device=body_pose.device)
+
+        local_skeleton = skeleton - skeleton[:, :, parents_tensor]
+        local_skeleton = torch.cat([skeleton[:, :, :1], local_skeleton[:, :, 1:]], dim=2)
+
+        if transl is not None:
+            local_skeleton[..., 0, :] += transl  # (B, L, 77, 3)
+
+        mat = matrix.get_TRS(rotmat, local_skeleton)  # (B, L, 77, 4, 4)
+        fk_mat = matrix.forward_kinematics(mat, parents)  # (B, L, 77, 4, 4)
+        joints = matrix.get_position(fk_mat)  # (B, L, 77, 3)
+        if not get_intermediate:
+            return joints
+        else:
+            return joints, mat, fk_mat
 
     def build_obs_indices_dict(self):
         """

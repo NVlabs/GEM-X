@@ -7,6 +7,10 @@ from hydra.utils import instantiate
 from torch.cuda.amp import autocast
 
 from gem.network.endecoder import EnDecoder
+from gem.pipeline.postprocess import (
+    refine_pose_with_contact_ik,
+    refine_translation_with_contacts,
+)
 from gem.utils.body_params import (
     get_pred_body_params_incam,
     set_intermediate_pred_body_params_global,
@@ -190,6 +194,21 @@ class Pipeline(nn.Module):
 
             if "static_conf_logits" in model_output:
                 outputs["static_conf_logits"] = model_output["static_conf_logits"]
+
+            # Contact-based postprocessing: refine translation + IK
+            if (
+                postproc
+                and "static_conf_logits" in outputs
+                and "pred_body_params_global" in outputs
+            ):
+                outputs["pred_body_params_global"]["transl"] = refine_translation_with_contacts(
+                    outputs, self.endecoder
+                )
+                body_pose = refine_pose_with_contact_ik(outputs, self.endecoder)
+                decode_dict["body_pose"] = body_pose
+                outputs["pred_body_params_global"]["body_pose"] = body_pose
+                if "pred_body_params_incam" in outputs:
+                    outputs["pred_body_params_incam"]["body_pose"] = body_pose
 
             return outputs
 
