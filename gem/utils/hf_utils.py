@@ -75,3 +75,44 @@ def download_soma_data(repo_id=HF_REPO_ID, local_dir=SOMA_DATA_DIR):
     _download_hf_file(repo_id, SOMA_SCALE_MEAN_FILENAME, local_dir)
     _download_hf_file(repo_id, SOMA_SCALE_COMPS_FILENAME, local_dir)
     return local_dir
+
+
+# ONNX models for fast demo
+ONNX_DIR = "inputs/onnx"
+ONNX_MODELS = {
+    "vitpose": ("vitpose.onnx", "vitpose.onnx.data"),
+    "gem_denoiser": ("gem_denoiser.onnx", "gem_denoiser.onnx.data"),
+    "gem_denoiser_no_imgfeat": (
+        "gem_denoiser_no_imgfeat.onnx",
+        "gem_denoiser_no_imgfeat.onnx.data",
+    ),
+    "sam3db_backbone": ("sam3db_backbone.onnx",),
+}
+
+
+def download_onnx_model(name, repo_id=HF_REPO_ID, local_dir=ONNX_DIR):
+    """Download an ONNX model (and its .data file) from HuggingFace Hub.
+
+    Args:
+        name: Model name key, one of: "vitpose", "gem_denoiser",
+              "gem_denoiser_no_imgfeat", "sam3db_backbone".
+
+    Returns:
+        Path to the main .onnx file.
+    """
+    if name not in ONNX_MODELS:
+        raise ValueError(f"Unknown ONNX model '{name}'. Available: {list(ONNX_MODELS)}")
+    files = ONNX_MODELS[name]
+    # Files live under onnx/ in the HF repo; download into the parent of
+    # local_dir so that onnx/<file> maps to <local_dir>/<file>.
+    parent = str(Path(local_dir).parent)
+    for f in files:
+        _download_hf_file(repo_id, f"onnx/{f}", parent)
+    return str(Path(local_dir) / files[0])
+
+
+def download_all_onnx(repo_id=HF_REPO_ID, local_dir=ONNX_DIR):
+    """Download all ONNX models for the fast demo pipeline."""
+    for name in ONNX_MODELS:
+        download_onnx_model(name, repo_id, local_dir)
+    return local_dir

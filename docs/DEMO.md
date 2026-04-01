@@ -3,10 +3,12 @@
 ## Pipeline Overview
 
 ```
-Input Video → Human Detection → 2D Keypoints (VitPose) → Features (SAM3D) → GEM Model → 3D Pose (SOMA)
-                                      ↓                                                        ↓
-                              2D Keypoint Overlay                              (Optional) Retarget → G1 Robot Motion
+Input Video → Human Detection (YOLOX) → 2D Keypoints (VitPose) → Features (SAM3D) → GEM Model → 3D Pose (SOMA)
+                                              ↓                                                        ↓
+                                      2D Keypoint Overlay                              (Optional) Retarget → G1 Robot Motion
 ```
+
+All demo scripts use **[YOLOX](https://github.com/Megvii-BaseDetection/YOLOX) + [ByteTrack](https://github.com/ifzhang/ByteTrack)** for person detection and tracking.
 
 ## Full 3D Pipeline (`demo_soma.py`)
 
@@ -29,7 +31,6 @@ python scripts/demo/demo_soma.py \
 | `--ckpt` | `null` | Pretrained checkpoint path |
 | `-s` / `--static_cam` | off | Assume static camera (disables VO) |
 | `--output_root` | `outputs/demo_soma` | Root directory for outputs |
-| `--detector_name` | `vitdet` | Human detector: `vitdet` or `sam3`. Set empty to skip. |
 | `--verbose` | off | Save debug overlays (bbox, pose) |
 | `--render_mhr` | off | Render MHR identity model |
 | `--retarget` | off | Retarget motion to Unitree G1 robot (requires soma-retargeter) |
@@ -43,7 +44,7 @@ Results are saved to `<output_root>/<video_name>/`:
 | `0_kp2d77_overlay.mp4` | 2D keypoint overlay on input video |
 | `<video_name>_1_incam.mp4` | In-camera mesh overlay |
 | `<video_name>_2_global.mp4` | Global-coordinate render |
-| `<video_name>_3_incam_global_horiz.mp4` | Side-by-side comparison |
+| `<video_name>_3_incam_global_horiz.mp4` | Side-by-side (or 2x2 grid with `--retarget`) |
 | `preprocess/bbx.pt` | Detected bounding boxes |
 | `preprocess/vitpose.pt` | 2D keypoints (77 joints) |
 | `preprocess/hpe_results.pt` | Full 3D pose prediction |
@@ -53,8 +54,45 @@ Results are saved to `<output_root>/<video_name>/`:
 
 ### Preprocessing Fallbacks
 
-- When no pre-computed `bbx.pt` exists, the demo runs human detection via ViTDet (`--detector_name vitdet`).
+- When no pre-computed `bbx.pt` exists, the demo runs human detection via YOLOX + ByteTrack.
 - If VO modules are unavailable, the demo falls back to a static camera trajectory.
+
+## Accelerated Pipeline (`demo_soma_onnx.py`)
+
+ONNX/TensorRT-accelerated variant of `demo_soma.py`. Replaces PyTorch inference with ONNX Runtime for VitPose, SAM-3D-Body, and the GEM denoiser.
+
+```bash
+python scripts/demo/demo_soma_onnx.py \
+  --video path/to/video.mp4
+```
+
+### Prerequisites
+
+ONNX models are automatically downloaded from [HuggingFace](https://huggingface.co/nvidia/GEM-X) on first run if not found locally. To export your own ONNX models instead:
+
+```bash
+python tools/export/export_vitpose_onnx.py
+python tools/export/export_sam3db_onnx.py
+python tools/export/export_denoiser_onnx.py --ckpt <path>
+```
+
+### Arguments
+
+| Argument | Default | Description |
+|---|---|---|
+| `--video` | — | Input video path (required) |
+| `--ckpt` | `null` | Pretrained checkpoint path |
+| `-s` / `--static_cam` | off | Assume static camera (disables VO) |
+| `--output_root` | `outputs/demo_soma_onnx` | Root directory for outputs |
+| `--verbose` | off | Save debug overlays |
+| `--force_pytorch` | off | Force PyTorch inference even if ONNX/TRT available |
+| `--no-imgfeat` | off | Skip SAM3DB, use 2D keypoints only |
+| `--ddim` | off | DDIM sampling (50 steps) instead of regression — slower but higher quality |
+| `--retarget` | off | Retarget motion to Unitree G1 robot |
+
+### Outputs
+
+Same as `demo_soma.py`. When `--retarget` is used, the final composite is a 2x2 grid (kp2d, incam, global, retarget).
 
 ## Humanoid Robot Retargeting (`--retarget`)
 
@@ -66,7 +104,7 @@ python scripts/demo/demo_soma.py \
   --retarget
 ```
 
-This requires the soma-retargeter package (see [Installation](INSTALL.md)). The output includes a G1 robot motion video and joint angle CSV. When `--retarget` is used, the final composite video shows a 2×2 grid: 2D keypoints, in-camera mesh, global mesh, and G1 robot motion.
+This requires the soma-retargeter package (see [Installation](INSTALL.md)). The output includes a G1 robot motion video and joint angle CSV. When `--retarget` is used, the final composite video shows a 2x2 grid: 2D keypoints, in-camera mesh, global mesh, and G1 robot motion.
 
 ## 2D Keypoint-Only Demo (`demo_2d_keypoints.py`)
 

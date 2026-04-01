@@ -28,11 +28,17 @@
 </p>
 
 
-## Overview
+## 📰 News
+
+- **[2025-06]** 📢 Added ONNX/TensorRT accelerated demo (`demo_soma_onnx.py`) — see [Demo docs](docs/DEMO.md#accelerated-pipeline-demo_soma_onnxpy)
+- **[2025-06]** 📢 Added humanoid robot retargeting to Unitree G1 (`--retarget`)
+- **[2025-05]** 📢 The **GEM** codebase is released!
+
+## 🔎 Overview
 
 GEM is a video-based 3D human pose estimation model developed by NVIDIA. It recovers full-body 77-joint motion — including body, hands, and face — from monocular video using the [**SOMA**](https://github.com/NVlabs/SOMA-X) parametric body model. The pipeline handles dynamic cameras and recovers global motion trajectories. GEM includes a bundled 2D pose estimation model that detects 77 SOMA keypoints, making the system fully self-contained. Licensed under Apache 2.0 for commercial use.
 
-## Key Features
+## ✨ Key Features
 
 - **77-joint SOMA body model** — full body, hands, and face articulation
 - **Bundled 2D keypoint detector** — 2D pose estimator trained for SOMA 77-joint skeleton
@@ -45,7 +51,7 @@ GEM is a video-based 3D human pose estimation model developed by NVIDIA. It reco
 
 Looking for **multi-modal motion generation** (text, audio, music conditioning)? Check out [**GEM-SMPL**](https://github.com/NVlabs/GENMO), our research model using the SMPL body model that supports both motion estimation and generation from diverse input modalities. Presented at **ICCV 2025 (Highlight)**.
 
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
 # 1. Clone
@@ -67,17 +73,17 @@ python scripts/demo/demo_soma.py --video path/to/video.mp4 --retarget
 
 See [docs/INSTALL.md](docs/INSTALL.md) for detailed installation instructions.
 
-## Documentation
+## 📚 Documentation
 
 | Document | Description |
 |---|---|
 | [Installation](docs/INSTALL.md) | Prerequisites, step-by-step setup, Docker, troubleshooting |
-| [Demo](docs/DEMO.md) | Full 3D pipeline, 2D keypoint-only demo, output formats |
+| [Demo](docs/DEMO.md) | Full 3D pipeline, ONNX/TRT accelerated demo, 2D keypoint-only demo, output formats |
 | [Training & Evaluation](docs/TRAINING.md) | Dataset preparation, training commands, config system |
 | [Model Overview](docs/MODEL_OVERVIEW.md) | Architecture, SOMA body model, bundled 2D pose model |
 | [Related Projects](docs/RELATED_PROJECTS.md) | GENMO, SOMA, ecosystem cross-references |
 
-## Pretrained Models
+## 📦 Pretrained Models
 
 | Model | Body Model | Joints | Download |
 |---|---|---|---|
@@ -85,7 +91,7 @@ See [docs/INSTALL.md](docs/INSTALL.md) for detailed installation instructions.
 
 Place checkpoints under `inputs/pretrained/` or pass the path via `--ckpt`. The demo scripts will automatically download the checkpoint from HuggingFace if `--ckpt` is not provided.
 
-## Related Humanoid Work at NVIDIA
+## 🤝 Related Humanoid Work at NVIDIA
 GEM is part of a larger effort to enable humanoid motion data for robotics, physical AI, and other applications.
 
 Check out these related works:
@@ -98,7 +104,7 @@ Check out these related works:
 * [Kimodo](https://github.com/nv-tlabs/kimodo)
 
 
-## Citation
+## 📖 Citation
 
 ```bibtex
 @inproceedings{genmo2025,
@@ -110,7 +116,7 @@ Check out these related works:
 ```
 
 
-## License
+## 📄 License
 
 This project is released under [Apache 2.0](LICENSE). This project will download and install additional third-party open source software projects. Review the license terms of these open source projects before use. See [ATTRIBUTIONS.md](ATTRIBUTIONS.md) for specifics. 
 

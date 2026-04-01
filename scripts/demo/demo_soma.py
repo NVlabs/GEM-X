@@ -78,12 +78,6 @@ def _parse_args():
     parser.add_argument("--sam3d_mhr_path", type=str, default=None)
     parser.add_argument("--ckpt", type=str, default=None)
     parser.add_argument("--exp", type=str, default="gem_soma_regression")
-    parser.add_argument(
-        "--detector_name",
-        type=str,
-        default="vitdet",
-        help="Human detector: 'vitdet' (Detectron2) or 'sam3'. Set empty to skip detection.",
-    )
     parser.add_argument("--retarget", action="store_true", help="Retarget SOMA motion to G1 robot")
     return parser.parse_args()
 
@@ -106,7 +100,6 @@ def _build_cfg(args):
     ]
     if args.ckpt is not None:
         overrides.append(f"ckpt_path={args.ckpt}")
-    overrides.append(f"detector_name={args.detector_name}")
     if args.sam3d_ckpt_path is not None:
         overrides.append(f"sam3d_ckpt_path={args.sam3d_ckpt_path}")
     if args.sam3d_mhr_path is not None:
@@ -138,30 +131,17 @@ def _copy_video_if_needed(cfg):
 
 
 @torch.no_grad()
-def _run_human_detection(cfg, paths, L, W, H, detector_name):
-    """Run human detection on each frame. Raises on failure."""
-    sam3db_root = str(PROJECT_ROOT / "third_party" / "sam-3d-body")
-    if sam3db_root not in sys.path:
-        sys.path.insert(0, sam3db_root)
-    from tools.build_detector import HumanDetector
+def _run_human_detection(cfg, paths, L, W, H):
+    """Run YOLOX + ByteTrack human detection on all frames."""
+    from gem.utils.yolox_detector import YOLOXDetector, detect_and_track
 
-    Log.info(f"[Preprocess] Running human detection with '{detector_name}'...")
-    detector = HumanDetector(name=detector_name, device="cuda")
-
+    Log.info("[Preprocess] Running human detection with YOLOX + ByteTrack...")
     frames = read_video_np(cfg.video_path)
-    all_boxes = []
-    for i in tqdm(range(len(frames)), desc="Detect Humans"):
-        # HumanDetector expects BGR; read_video_np returns RGB
-        img_bgr = frames[i][..., ::-1].copy()
-        boxes = detector.run_human_detection(img_bgr)  # (N, 4) xyxy
-        if len(boxes) == 0:
-            all_boxes.append(np.array([0.0, 0.0, W - 1, H - 1]))
-        else:
-            # Pick the largest-area detection (single-person assumption)
-            areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
-            all_boxes.append(boxes[areas.argmax()])
 
-    bbx_xyxy = torch.from_numpy(np.stack(all_boxes, axis=0)).float()  # (L, 4)
+    yolox = YOLOXDetector(device="cuda")
+    bbx_xyxy_np, _ = detect_and_track(frames, yolox)
+
+    bbx_xyxy = torch.from_numpy(bbx_xyxy_np).float()  # (L, 4)
     bbx_xyxy = smooth_bbx_xyxy(bbx_xyxy, window=5)
     # Clamp to image bounds
     bbx_xyxy[:, [0, 2]] = bbx_xyxy[:, [0, 2]].clamp(0, W - 1)
@@ -179,14 +159,7 @@ def run_preprocess(cfg):
 
     L, W, H = get_video_lwh(video_path)
     if not Path(paths.bbx).exists():
-        detector_name = cfg.get("detector_name", "vitdet")
-        if detector_name:
-            _run_human_detection(cfg, paths, L, W, H, detector_name)
-        else:
-            raise RuntimeError(
-                f"No bounding-box file found at {paths.bbx} and no detector specified. "
-                "Either provide a pre-computed bbx.pt or set --detector_name (e.g. 'vitdet')."
-            )
+        _run_human_detection(cfg, paths, L, W, H)
 
     bbx_xys = torch.load(paths.bbx)["bbx_xys"]
 
