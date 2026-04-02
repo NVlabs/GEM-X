@@ -61,6 +61,8 @@ Results are saved to `<output_root>/<video_name>/`:
 
 ONNX/TensorRT-accelerated variant of `demo_soma.py`. Replaces PyTorch inference with ONNX Runtime for VitPose, SAM-3D-Body, and the GEM denoiser.
 
+> **macOS:** This script supports Apple Silicon via ONNX Runtime with the CoreML Execution Provider. See [INSTALL_MACOS.md](INSTALL_MACOS.md) for setup instructions.
+
 ```bash
 python scripts/demo/demo_soma_onnx.py \
   --video path/to/video.mp4

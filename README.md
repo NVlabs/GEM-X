@@ -73,11 +73,15 @@ python scripts/demo/demo_soma.py --video path/to/video.mp4 --retarget
 
 See [docs/INSTALL.md](docs/INSTALL.md) for detailed installation instructions.
 
+> **Mac users:** For real-time webcam demos on Apple Silicon, see
+> [docs/INSTALL_MACOS.md](docs/INSTALL_MACOS.md) instead.
+
 ## 📚 Documentation
 
 | Document | Description |
 |---|---|
 | [Installation](docs/INSTALL.md) | Prerequisites, step-by-step setup, Docker, troubleshooting |
+| [Installation (macOS)](docs/INSTALL_MACOS.md) | Apple Silicon setup for the real-time webcam demo |
 | [Demo](docs/DEMO.md) | Full 3D pipeline, ONNX/TRT accelerated demo, 2D keypoint-only demo, output formats |
 | [Training & Evaluation](docs/TRAINING.md) | Dataset preparation, training commands, config system |
 | [Model Overview](docs/MODEL_OVERVIEW.md) | Architecture, SOMA body model, bundled 2D pose model |
