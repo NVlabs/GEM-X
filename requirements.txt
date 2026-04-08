@@ -29,3 +29,6 @@ trimesh==4.11.3
 # ML
 transformers==5.3.0
 wandb==0.25.1
+fastapi==0.116.1
+gradio==5.47.0
+uvicorn==0.35.0
