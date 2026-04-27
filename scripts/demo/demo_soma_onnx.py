@@ -14,21 +14,13 @@ bound and not the bottleneck.
 
 Workflow
 --------
-1. Run the three export scripts to produce ONNX files::
-
-       python tools/export/export_vitpose_onnx.py
-       python tools/export/export_sam3db_onnx.py
-       python tools/export/export_denoiser_onnx.py --ckpt <path>
-
-2. (Optional) Build TensorRT engines for even faster inference::
-
-       python tools/export/build_trt.py --all --fp16
-
-3. Run this demo::
+Just run the demo — ONNX models are downloaded automatically from
+HuggingFace (``nvidia/GEM-X``) on first use::
 
        python scripts/demo/demo_soma_onnx.py --video inputs/demo.mp4
 
-If ONNX models are not found, the script falls back to PyTorch automatically.
+If an ONNX model is missing and auto-download fails, the script falls back
+to PyTorch.
 """
 
 # ruff: noqa: E402, I001

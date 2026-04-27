@@ -86,7 +86,7 @@ ONNX_MODELS = {
         "gem_denoiser_no_imgfeat.onnx",
         "gem_denoiser_no_imgfeat.onnx.data",
     ),
-    "sam3db_backbone": ("sam3db_backbone.onnx",),
+    "sam3db_backbone": ("sam3db_backbone.onnx", "sam3db_backbone.onnx.data"),
 }
 
 
