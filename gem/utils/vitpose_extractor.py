@@ -81,13 +81,13 @@ _VITPOSE_STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
 
 def get_batch(video_or_np, bbx_xys, img_ds=1.0, path_type="np"):
-    """Crop+resize+normalize video frames to (256, 256) input tensor."""
+    """Crop+resize+normalize RGB video frames to (256, 256) input tensor."""
     import cv2
 
     if isinstance(video_or_np, np.ndarray):
         frames = video_or_np
     else:
-        frames = [cv2.imread(p) for p in video_or_np]
+        frames = [cv2.imread(p)[..., ::-1] for p in video_or_np]
     T = len(frames)
     out = np.zeros((T, 3, 256, 256), dtype=np.float32)
     for i, (frame, bxy) in enumerate(zip(frames, bbx_xys)):
@@ -98,7 +98,7 @@ def get_batch(video_or_np, bbx_xys, img_ds=1.0, path_type="np"):
         dst = np.array([[0, 0], [255, 0], [127.5, 127.5]], dtype=np.float32)
         M = cv2.getAffineTransform(src, dst)
         crop = cv2.warpAffine(frame, M, (256, 256), flags=cv2.INTER_LINEAR)
-        crop = crop[..., ::-1].astype(np.float32) / 255.0  # BGR→RGB
+        crop = crop.astype(np.float32) / 255.0
         crop = (crop - _VITPOSE_MEAN) / _VITPOSE_STD
         out[i] = crop.transpose(2, 0, 1)
     return torch.from_numpy(out), bbx_xys
