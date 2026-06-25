@@ -581,7 +581,7 @@ _VITPOSE_STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
 
 def vitpose_preprocess(frames, bbx_xys):
-    """Crop+resize+normalize for VitPose: (T, 3, 256, 256)."""
+    """Crop+resize+normalize RGB frames for VitPose: (T, 3, 256, 256)."""
     T = len(frames)
     out = np.zeros((T, 3, 256, 256), dtype=np.float32)
     for i, (frame, bxy) in enumerate(zip(frames, bbx_xys)):
@@ -591,7 +591,7 @@ def vitpose_preprocess(frames, bbx_xys):
         dst = np.array([[0, 0], [255, 0], [127.5, 127.5]], dtype=np.float32)
         M = cv2.getAffineTransform(src, dst)
         crop = cv2.warpAffine(frame, M, (256, 256), flags=cv2.INTER_LINEAR)
-        crop = crop[..., ::-1].astype(np.float32) / 255.0  # BGR→RGB
+        crop = crop.astype(np.float32) / 255.0
         crop = (crop - _VITPOSE_MEAN) / _VITPOSE_STD
         out[i] = crop.transpose(2, 0, 1)
     return torch.from_numpy(out), bbx_xys
