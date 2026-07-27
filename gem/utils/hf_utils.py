@@ -106,9 +106,12 @@ def download_onnx_model(name, repo_id=HF_REPO_ID, local_dir=ONNX_DIR):
     # Files live under onnx/ in the HF repo; download into the parent of
     # local_dir so that onnx/<file> maps to <local_dir>/<file>.
     parent = str(Path(local_dir).parent)
-    for f in files:
-        _download_hf_file(repo_id, f"onnx/{f}", parent)
-    return str(Path(local_dir) / files[0])
+    onnx_path = None
+    for i, f in enumerate(files):
+        downloaded = _download_hf_file(repo_id, f"onnx/{f}", parent)
+        if i == 0:
+            onnx_path = downloaded
+    return onnx_path
 
 
 def download_all_onnx(repo_id=HF_REPO_ID, local_dir=ONNX_DIR):
