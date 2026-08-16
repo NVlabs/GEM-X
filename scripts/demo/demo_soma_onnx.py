@@ -288,7 +288,8 @@ class TRTRunner:
         import tensorrt as trt
 
         logger = trt.Logger(trt.Logger.ERROR)
-        with open(engine_path, "rb") as f, trt.Runtime(logger) as runtime:
+        with open(engine_path, "rb") as f:
+            runtime = trt.Runtime(logger)
             self.engine = runtime.deserialize_cuda_engine(f.read())
         self.context = self.engine.create_execution_context()
         self.device = torch.device(device)
@@ -371,7 +372,7 @@ def load_vitpose(onnx_path="inputs/onnx/vitpose.onnx", trt_path="outputs/trt/vit
                 TRTRunner(
                     trt_path,
                     input_names=["imgs"],
-                    output_shapes={"heatmaps": lambda kw: (kw["imgs"].shape[0], 77, 16, 12)},
+                    output_shapes={"heatmaps": lambda kw: (kw["imgs"].shape[0], 77, 64, 48)},
                 ),
                 "trt",
             )
