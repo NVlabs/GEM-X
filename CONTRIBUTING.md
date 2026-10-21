@@ -1,5 +1,24 @@
 # How to Contribute
 
+## Local development
+
+Use Python 3.10 or newer and install the optional dependencies needed by the
+portable tests:
+
+```bash
+python -m pip install -e '.[train,eval,dev]'
+python -m pytest tests
+ruff check gem scripts tests
+black --check gem scripts tests
+```
+
+The public tests use small CPU fixtures and do not download model weights or
+require SOMA geometry assets. Runtime code belongs in `gem/common`, `gem/pose`,
+`gem/motion` or `gem/inference` according to its owner; the CLI and source
+wrappers call those same implementations. Prepared data, checkpoints and
+geometry assets are supplied separately. See [Architecture](docs/ARCHITECTURE.md)
+for module boundaries and [Training](docs/TRAINING.md) for data interfaces.
+
 ## Contribution License
 
 Contributions will only be accepted under the Apache-2.0 license. By contributing to this project, you agree that your contributions will be licensed under the [Apache 2.0 License](LICENSE).

@@ -1,5 +1,0 @@
-metrosim_dh_mocap:
-  _target_: gem.datasets.metrosim.metrosim_mocap.MetrosimMocapDataset
-  data_root: inputs/metrosim_data_A2G_Bones2_DH
-  cam_augmentation: v11
-  debug: ${debug}

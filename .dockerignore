@@ -1,0 +1,8 @@
+**
+!pyproject.toml
+!setup.py
+!setup.cfg
+!README.md
+!LICENSE
+!gem/
+!gem/**

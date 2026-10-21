@@ -1,0 +1,42 @@
+# Canonical-left prepared samples; no annotation or fitting runs in the trainer.
+seed: 42
+model:
+  _target_: gem.pose.training.factory.build_hand_training_model
+  soma_assets: ${oc.env:GEM_SOMA_ASSETS}
+  release:
+    _target_: gem.pose.api.hand_training_config
+    pose_release_id: gem-pose-hand-example
+  initialization: null
+  optimizer:
+    lr: 1.0e-5
+    backbone_lr: 5.0e-6
+    weight_decay: 1.0e-4
+    fused: null
+  grad_clip_val: 1.0
+data:
+  _target_: gem.pose.data.training.PoseTrainingDataModule
+  train_dataset:
+    _target_: gem.pose.data.hand_training.PreparedHandPoseDataset
+    path: ${oc.env:GEM_HAND_TRAIN_SAMPLES}
+  batch_size: 1
+  shuffle: true
+  seed: 42
+  num_workers: 0
+trainer:
+  accelerator: gpu
+  devices: 1
+  precision: 16-mixed
+  max_steps: 2
+  max_epochs: 2
+  num_sanity_val_steps: 0
+  limit_val_batches: 0
+  log_every_n_steps: 1
+  default_root_dir: outputs/pose_hand_example
+checkpoint:
+  dirpath: outputs/pose_hand_example/checkpoints
+  filename: step-{step:06d}
+  auto_insert_metric_name: false
+  every_n_train_steps: 2
+  save_top_k: 1
+  save_last: false
+  save_on_train_epoch_end: false

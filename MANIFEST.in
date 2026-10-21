@@ -1,0 +1,55 @@
+# Package archives contain the public framework and selected examples only.
+prune gem_private
+prune outputs
+prune build
+prune scripts
+prune tools
+prune docs
+prune tests
+exclude .gitmodules AGENTS.md PLAN.md EXPERIMENTS.md
+include LICENSES/LicenseRef-OpenMDW-1.1.txt
+include README.md LICENSE ATTRIBUTIONS.md CONTRIBUTING.md SECURITY.md requirements.txt
+include CHANGELOG.md .pre-commit-config.yaml
+include assets/demo_2d_keypoints.gif assets/demo_incam_mesh.gif assets/demo_global_mesh.gif
+include assets/hand_pose.gif
+include assets/body_pose_motion.gif assets/g1_retarget.gif
+include assets/body_pose_motion.mp4 assets/hand_pose.mp4 assets/g1_retarget.mp4
+include assets/body_pose_motion_poster.png assets/g1_retarget_poster.png
+include assets/gemx_overview.gif assets/gemx_overview.mp4 assets/gemx_overview_poster.png
+include assets/body_motion_night.mp4 assets/body_motion_night_poster.png assets/hand_pose_poster.png
+include scripts/predict.py scripts/train_pose.py scripts/train_motion.py scripts/evaluate_pose.py
+include scripts/make_pose_example.py scripts/make_hand_pose_example.py scripts/install_env.sh
+include docs/ARCHITECTURE.md docs/DEMO.md docs/INSTALL.md docs/MODEL_OVERVIEW.md
+include docs/PRETRAINED_MODELS.md
+include docs/TRAINING.md docs/POSE_TRAINING.md docs/HAND_TRAINING.md docs/EVAL.md
+include docs/configs/body_video_native29.yaml docs/configs/body_video_native77.yaml
+include docs/configs/eval_hand_soma25.yaml docs/configs/hand_finetune.yaml
+include docs/configs/motion_mixed_example.yaml
+include docs/configs/pose_body_example.yaml docs/configs/pose_hand_example.yaml
+include tests/test_installation.py tests/pose/test_pose_api.py tests/pose/test_training_cli.py
+include tests/__init__.py tests/pose/__init__.py
+include tests/pose/test_evaluation_runner.py
+include tests/pose/test_visualization_callback.py
+include tests/common/test_dinov3_pretrained.py tests/common/test_geometry.py
+include tests/pose/test_pose_conditioning.py tests/pose/test_body_training_data.py
+include tests/pose/test_hand_training_data.py tests/pose/test_optimization.py
+include tests/pose/test_training_module.py
+include tests/pose/hand_training_fixtures.py tests/pose/test_hand_training_losses.py
+include tests/pose/test_hand_training_module.py tests/pose/test_hand_training_factory.py
+include tests/pose/test_hand_ga.py tests/pose/test_hand_ga_inference.py
+include tests/pose/test_fixed_depth_translation.py
+include tests/motion/test_batch_pack.py tests/motion/test_training_time.py
+include tests/motion/test_evaluation.py tests/motion/test_cache_data.py
+include tests/inference/test_entrypoints.py
+include tests/common/test_camera_adapters.py
+include tests/inference/test_hand_inputs.py tests/inference/test_pose_camera_adapters.py
+include tests/inference/test_render_pose.py tests/pose/test_hand_smoothing.py
+global-exclude *.py[cod] __pycache__
+
+include tests/common/test_camera_models.py tests/common/test_hand_boxes.py
+include tests/common/test_undistortion.py
+include tests/inference/test_undistorted_hand.py
+include tests/motion/test_api.py
+include tests/inference/test_motion.py
+include tests/pose/test_release_names.py
+include tests/motion/test_body_release_ids.py

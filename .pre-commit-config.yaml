@@ -23,3 +23,5 @@ repos:
         exclude: ^third_party/
       - id: check-added-large-files
         args: [--maxkb=500]
+        # Explicit README demo assets are the only size exceptions.
+        exclude: ^assets/((demo_2d_keypoints|demo_incam_mesh|demo_global_mesh|hand_pose|body_pose_motion|g1_retarget|gemx_overview)\.gif|(body_pose_motion|body_motion_night|hand_pose|g1_retarget|gemx_overview)\.mp4|(body_pose_motion|body_motion_night|hand_pose|g1_retarget|gemx_overview)_poster\.png)$

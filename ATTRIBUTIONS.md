@@ -1,4 +1,26 @@
-This repository uses the following third-party components. Their respective licenses are reproduced below.
+GEM's default source license is [Apache 2.0](LICENSE). Components with their
+own notices retain the licenses listed below.
+
+---
+
+## NVIDIA — Hand processing utilities
+
+The following modules and functions adapt the NVIDIA EgoHand processing utilities.
+They keep Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES and identify
+`LicenseRef-OpenMDW-1.1` in their file or function notices:
+
+| GEM module | Adapted functionality |
+| --- | --- |
+| [gem/common/detectors/hand_boxes.py](gem/common/detectors/hand_boxes.py) | Temporal stabilization of native hand crop tracks |
+| [gem/common/camera_models.py](gem/common/camera_models.py) | Generic calibrated camera projection and inverse projection |
+| [gem/common/undistortion.py](gem/common/undistortion.py) | Full-image pinhole rectification and sampled source-image box bounds |
+| [gem/inference/camera.py](gem/inference/camera.py), `restore_source_camera_predictions` | Restore raw and smoothed predictions to source-image pixels; other functions in this file retain Apache 2.0 |
+| [gem/pose/smoothing.py](gem/pose/smoothing.py) | Adaptive translation, SO(3) rotation and shape filtering |
+
+**License:** [OpenMDW License Agreement, version 1.1](LICENSES/LicenseRef-OpenMDW-1.1.txt).
+The complete upstream license and copyright notice are included at that path.
+These notices apply to the identified modules and functions; the repository's default Apache 2.0
+license remains in [LICENSE](LICENSE).
 
 ---
 
@@ -43,46 +65,6 @@ Redistribution and use in source and binary forms, with or without modification,
 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
----
-
-## Megvii — YOLOX
-
-https://github.com/Megvii-BaseDetection/YOLOX
-
-The following file contains a self-contained YOLOX ONNX detector reimplementation:
-
-- `gem/utils/yolox_detector.py`
-
-Copyright (c) 2021 Megvii, Inc. All rights reserved.
-
-**License:** Apache License 2.0
-
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
-
----
-
-## Megvii — ByteTrack
-
-https://github.com/ifzhang/ByteTrack
-
-The following file contains a self-contained ByteTrack multi-object tracker reimplementation:
-
-- `gem/utils/yolox_detector.py`
-
-Copyright (c) 2021 Yifu Zhang, licensed under the MIT License.
-
-**License:** MIT License
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ---
 

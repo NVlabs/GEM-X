@@ -1,61 +1,42 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-FROM nvidia/cuda:12.6.0-devel-ubuntu22.04
+ARG BASE_IMAGE=python:3.12-slim
+FROM ${BASE_IMAGE}
 
-ENV DEBIAN_FRONTEND=noninteractive
+# Let PyTorch's explicit matmul policy control precision, including the IEEE
+# geometry/IK scopes. Some NVIDIA bases otherwise force TF32 regardless of it.
+ENV TORCH_ALLOW_TF32_CUBLAS_OVERRIDE=0
 
-# System dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3.10 \
-    python3.10-venv \
-    python3.10-dev \
-    python3-pip \
-    git \
-    git-lfs \
-    wget \
-    curl \
-    gosu \
-    xvfb \
-    libegl1-mesa-dev \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
+# A PyTorch runtime image can supply the architecture-specific CUDA build.
+# Use an empty GEM_EXTRAS value for base inference only.
+ARG GEM_EXTRAS=train,video
+ARG DEBIAN_FRONTEND=noninteractive
+
+# GPU execution uses the host driver through NVIDIA Container Toolkit.
+# Video decoding/normalization needs ffmpeg; optional Open3D rendering also
+# needs Mesa EGL for the supported Open3D0.19 renderer.
+RUN set -eu; \
+    render_packages=""; \
+    case ",${GEM_EXTRAS}," in \
+        *,render,*) render_packages="libegl1 libegl-mesa0 libgl1 libgl1-mesa-dri" ;; \
+    esac; \
+    apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 libgomp1 ffmpeg ${render_packages} \
     && rm -rf /var/lib/apt/lists/*
 
-RUN git lfs install
-
-# Install uv
-RUN pip install uv
-
-# Set up workspace
 WORKDIR /workspace/gem
-COPY . /workspace/gem
+COPY pyproject.toml setup.py setup.cfg README.md LICENSE ./
+COPY gem ./gem
 
-# Create virtual environment
-RUN uv venv .venv --python 3.10
+# SOMA is installed from PyPI. Checkpoints and SOMA assets are supplied at run
+# time; building the image does not fetch model assets or require submodules.
+# Normal pip installation preserves a compatible Torch already in BASE_IMAGE.
+# ARM64 requires a matching usd-core wheel installed in that base or available
+# through its pip index; an importable pxr tree alone is not a distribution.
+RUN set -eu; \
+    package="."; \
+    if [ -n "${GEM_EXTRAS}" ]; then package=".[${GEM_EXTRAS}]"; fi; \
+    python -m pip install --no-cache-dir "${package}"
 
-# Install PyTorch
-RUN . .venv/bin/activate && \
-    uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
-
-# Install SOMA body model
-RUN . .venv/bin/activate && \
-    uv pip install -e third_party/soma
-
-# Pull SOMA LFS assets
-RUN cd third_party/soma && git lfs pull && cd ../..
-
-# Install GEM and dependencies
-RUN . .venv/bin/activate && \
-    bash scripts/install_env.sh
-
-# Headless rendering environment
-ENV PYOPENGL_PLATFORM=egl
-ENV EGL_PLATFORM=surfaceless
-
-# Activate venv by default
-ENV PATH="/workspace/gem/.venv/bin:${PATH}"
-ENV VIRTUAL_ENV="/workspace/gem/.venv"
-
-ENTRYPOINT ["tools/docker-entrypoint.sh"]
-CMD ["bash"]
+CMD ["gem-infer", "--help"]

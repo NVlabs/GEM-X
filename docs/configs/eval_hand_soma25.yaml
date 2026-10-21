@@ -1,0 +1,17 @@
+name: prepared_hand_soma25
+device: cuda
+precision: 32-true
+predictor:
+  _target_: gem.pose.evaluation.runner.load_evaluation_predictor
+  checkpoint: ${oc.env:GEM_POSE_CHECKPOINT}
+  soma_assets: ${oc.env:GEM_SOMA_ASSETS}
+  release: null
+data:
+  _target_: gem.pose.data.evaluation.PreparedPoseEvaluationDataset
+  path: ${oc.env:GEM_EVAL_SAMPLES}
+loader:
+  batch_size: 8
+  num_workers: 0
+evaluator:
+  _target_: gem.pose.evaluation.hand.HandEvaluator
+  protocol: soma25_online

@@ -1,5 +1,0 @@
-_target_: gem.network.endecoder.EnDecoder
-stats_name: MM_V2_SOMA_METROSIM
-feat_dim: 585
-encode_type: soma_v2
-clip_std: true

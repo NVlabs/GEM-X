@@ -1,0 +1,78 @@
+# Finite prepared-batch example: full native29 Motion, 80% video / 20% image.
+# Data, Pose features, SOMA assets, normalizer and projector are caller-owned
+# and must match. This is illustrative wiring, not a full-dataset recipe.
+seed: 42
+_convert_: all
+run_dir: ${oc.env:GEM_MOTION_RUN_DIR,outputs/motion_mixed_example}
+model:
+  _target_: gem.motion.training.factory.build_motion_model
+  soma_assets: ${oc.env:GEM_SOMA_ASSETS}
+  motion_stats: ${oc.env:GEM_MOTION_STATS}
+  landmark_projector: ${oc.env:GEM_LANDMARK_PROJECTOR}
+  pose_release_id: ${oc.env:GEM_POSE_FEATURE_RELEASE}
+  observation_schema: soma29_nofinger_v1
+  observation_augmentation: common2d_v1
+  network_options:
+    output_dim: 655
+    max_len: 120
+    obs_num_joints: 29
+    imgseq_dim: 1024
+    latent_dim: 512
+    num_layers: 12
+    num_heads: 8
+    dropout: 0.1
+    avgbeta: true
+  time_options:
+    reference_fps: 30.0
+    default_fps: 30.0
+  learning_rate: 2.0e-4
+  weight_decay: 0.01
+  lr_milestones: [188500, 259188]
+  lr_gamma: 0.5
+data:
+  _target_: gem.motion.data.MixedImageVideoDataModule
+  sources:
+    video:
+      _target_: gem.motion.data.batch_pack.PreparedBatchPack
+      path: ${oc.env:GEM_MOTION_BATCH_PACK}
+      source: video
+    images:
+      _target_: gem.motion.data.batch_pack.PreparedBatchPack
+      path: ${oc.env:GEM_MOTION_BATCH_PACK}
+      source: images
+  # Each dataset item is already a complete batch; do not batch it twice.
+  batch_sizes:
+    video: 1
+    images: 1
+  collate_fns:
+    video:
+      _target_: gem.motion.data.batch_pack.collate_prepared_batch
+      _partial_: true
+    images:
+      _target_: gem.motion.data.batch_pack.collate_prepared_batch
+      _partial_: true
+  schedule:
+    _target_: gem.motion.data.MixedTaskSchedule
+    source_weights:
+      video: 4
+      images: 1
+    seed: 42
+  attempts_per_epoch: 20
+  num_workers: 0
+  pin_memory: true
+trainer:
+  accelerator: gpu
+  devices: 1
+  precision: 16-mixed
+  max_steps: 20
+  max_epochs: 2
+  gradient_clip_val: 0.5
+  log_every_n_steps: 1
+  num_sanity_val_steps: 0
+  limit_val_batches: 0
+  inference_mode: false
+  default_root_dir: ${run_dir}
+checkpoint:
+  dirpath: ${run_dir}/checkpoints
+  every_n_train_steps: 5
+  every_n_epochs: 1
