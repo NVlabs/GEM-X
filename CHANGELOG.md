@@ -20,8 +20,9 @@
   for matching `s060000` Hand weights, with repository-authorized access.
   Provide Body Pose and Body Motion downloads and matching configurations from
   GEM-X. Those release exports omit full training-resume state. The existing
-  Hand GIF and earlier source comparisons
-  retain their `s040000` labels; see the
+  Hand GIF reuses the upstream EgoHand 1.0-GA showcase; it is not a new
+  `s060000` inference run. Earlier source comparisons retain their original
+  checkpoint labels; see the
   [model guide](docs/PRETRAINED_MODELS.md#hand-pose-s060000) for validation scope.
 - Add explicit ego/exo Hand Pose processing profiles and shared Body/Hand Pose
   square-pixel correction. `--camera` accepts PINHOLE, RATIONAL_POLYNOMIAL,
@@ -65,7 +66,8 @@
   Body Motion pretrained checkpoints using their matching release
   configurations and normalization statistics.
 - Refresh installation, pretrained-model, inference, training and evaluation
-  documentation; retain the body demo GIFs and add an ARCTIC Hand Pose demo.
+  documentation; showcase single-image Body Pose, temporal Body Motion and G1
+  retargeting alongside the upstream EgoHand 1.0-GA Hand Pose showcase.
 
 ## v1.0.0 — Initial Release
 
