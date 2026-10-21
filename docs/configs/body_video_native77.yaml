@@ -1,0 +1,51 @@
+# Native77 final775 Body Motion with original ViTPose and Body Pose features.
+# Paths resolve relative to this file and use the repository-level weights folder.
+# Obtain yolox_humanart.onnx separately or change detector.checkpoint.
+# Keep the statistics sidecar for this checkpoint. Remove stats only when using
+# a GEM training checkpoint that includes its codec statistics.
+pose:
+  checkpoint: ../../weights/body_s240000.ckpt
+  release: body
+  batch_size: 4
+observations:
+  checkpoint: ../../weights/vitpose.pth
+  release_id: vitpose77-dinov3-huge-metrosim-256x192-v1
+  batch_size: 4
+detector:
+  checkpoint: ../../weights/yolox_humanart.onnx
+  device: cpu
+motion:
+  checkpoint: ../../weights/motion_native77_e774_s292175.ckpt
+  stats: ../../weights/motion_stats_raw.npz
+  network:
+    output_dim: 655
+    max_len: 120
+    cliffcam_dim: 3
+    cam_angvel_dim: 6
+    imgseq_dim: 1024
+    latent_dim: 512
+    num_layers: 12
+    num_heads: 8
+    mlp_ratio: 4.0
+    pred_cam_dim: 3
+    static_conf_dim: 6
+    dropout: 0.1
+    avgbeta: true
+    obs_num_joints: 77
+    sequence_static_slices:
+    - - 456
+      - 584
+    - - 584
+      - 640
+  condition_spec:
+    pose_release_id: gem-pose-body-s240000-v1:pose_tokens
+    observation_source: vitpose77-dinov3-huge-metrosim-256x192-v1
+    observation_joint_set: soma77_native_v1
+  time_options:
+    reference_fps: 30.0
+    default_fps: 30.0
+    # motion-video supplies explicit 30 Hz timestamps. For other cached inputs,
+    # retain the physical-time settings and source-rate mapping of their recipe.
+    fps_by_data_name: {}
+camera:
+  mode: background

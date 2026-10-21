@@ -1,0 +1,53 @@
+# Fine-tune the current Hand model from a local egohand_s060000.ckpt checkpoint.
+# Download egohand_s060000.ckpt from nvidia/EgoHand-v1 on Hugging Face.
+# Use an authorized account; access is managed by the official repository.
+# Architecture: log-lambda depth, head RayPE and separate direct 2D keypoints.
+# Supply real canonical-left prepared RGB/GT samples; see docs/HAND_TRAINING.md.
+# These are editable starting settings, not a dataset-specific tuned recipe.
+seed: 42
+model:
+  _target_: gem.pose.training.factory.build_hand_training_model
+  soma_assets: ${oc.env:GEM_SOMA_ASSETS}
+  release:
+    _target_: gem.pose.api.hand_training_config
+    pose_release_id: gem-pose-hand-finetune
+  # New run: load both backbone and hand head; create fresh optimizer state.
+  # --resume restores a native training checkpoint and ignores initialization.
+  initialization: ${oc.env:GEM_HAND_CHECKPOINT}
+  optimizer:
+    lr: 1.0e-5
+    backbone_lr: 5.0e-6
+    weight_decay: 1.0e-4
+    fused: null
+  grad_clip_val: 1.0
+data:
+  _target_: gem.pose.data.training.PoseTrainingDataModule
+  train_dataset:
+    _target_: gem.pose.data.hand_training.PreparedHandPoseDataset
+    path: ${oc.env:GEM_HAND_TRAIN_SAMPLES}
+  batch_size: 1
+  shuffle: true
+  seed: ${seed}
+  num_workers: 0
+trainer:
+  accelerator: gpu
+  devices: 1
+  precision: 16-mixed
+  # Hand global_step counts optimizer attempts; AMP can skip an actual update.
+  max_steps: 10000
+  max_epochs: -1
+  num_sanity_val_steps: 0
+  # Add data.val_dataset and enable validation batches for objective validation.
+  limit_val_batches: 0
+  log_every_n_steps: 50
+  default_root_dir: ${oc.env:GEM_HAND_FINETUNE_RUN_DIR,outputs/hand_finetune}
+checkpoint:
+  dirpath: ${trainer.default_root_dir}/checkpoints
+  filename: step-{step:06d}
+  auto_insert_metric_name: false
+  every_n_train_steps: 500
+  # Retain the latest periodic checkpoint and a resumable last.ckpt.
+  save_top_k: 1
+  save_last: true
+  save_weights_only: false
+  save_on_train_epoch_end: false

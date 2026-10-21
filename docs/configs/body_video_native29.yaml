@@ -1,0 +1,50 @@
+# Native29 Body Motion with Body Pose features. Paths resolve relative to this file.
+# Set both observation IDs to the exact release used to train your Motion model.
+# The historical training checkpoint requires its statistics sidecar; remove stats
+# only when using a compatible native checkpoint that embeds codec buffers.
+pose:
+  checkpoint: ../../weights/body_s240000.ckpt
+  release: body
+  batch_size: 4
+observations:
+  checkpoint: ../../weights/native77_vitpose.pth
+  release_id: YOUR_NATIVE77_RELEASE_ID
+  batch_size: 4
+detector:
+  checkpoint: ../../weights/yolox_humanart.onnx
+  device: cpu
+motion:
+  checkpoint: ../../weights/motion_native29.ckpt
+  stats: ../../weights/motion_stats_raw.npz
+  network:
+    output_dim: 655
+    max_len: 120
+    cliffcam_dim: 3
+    cam_angvel_dim: 6
+    imgseq_dim: 1024
+    latent_dim: 512
+    num_layers: 12
+    num_heads: 8
+    mlp_ratio: 4.0
+    pred_cam_dim: 3
+    static_conf_dim: 6
+    dropout: 0.1
+    avgbeta: true
+    obs_num_joints: 29
+    sequence_static_slices:
+    - - 456
+      - 584
+    - - 584
+      - 640
+  condition_spec:
+    pose_release_id: gem-pose-body-s240000-v1:pose_tokens
+    observation_source: YOUR_NATIVE77_RELEASE_ID
+    observation_joint_set: soma29_nofinger_v1
+  time_options:
+    reference_fps: 30.0
+    default_fps: 30.0
+    # The video command emits explicit 30 Hz timestamps. For other cached
+    # conditions, supply the source-rate mapping from the training recipe.
+    fps_by_data_name: {}
+camera:
+  mode: background

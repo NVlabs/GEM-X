@@ -1,6 +1,0 @@
-metrosim_dh_mocap_train:
-  _target_: gem.datasets.metrosim.metrosim.MetrosimDataset
-  data_root: inputs/metrosim_data_A2G_Bones2_DH
-  mode: train
-  debug: ${debug}
-  aug_bbx: false

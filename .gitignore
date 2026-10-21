@@ -2,6 +2,8 @@ __pycache__/
 *.pyc
 *.pyo
 *.egg-info/
+build/
+dist/
 .torch/
 inputs
 outputs/
@@ -13,6 +15,27 @@ wandb/
 *.pt
 *.pth
 .venv/
-scripts/train_slurm.py
-scripts/slurm_init.local.sh
+.pytest_cache/
+.env
+.env.*
 examples/
+examples
+
+# Local agent/editor/environment stubs
+.claude/
+.codex
+.idea/
+.idea
+.vscode/
+.vscode
+.bash_profile
+.bashrc
+.gitconfig
+.mcp.json
+.profile
+.ripgreprc
+.zprofile
+.zshrc
+
+# Local presentation artifacts
+*.pptx

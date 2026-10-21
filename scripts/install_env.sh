@@ -1,18 +1,14 @@
-#!/bin/bash
-set -e  # Exit immediately if a command exits with a non-zero status.
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "Installing gem in editable mode..."
-uv pip install -e .
-
-echo "Installing SAM-3D-Body runtime deps..."
-uv pip install cloudpickle fvcore iopath pycocotools braceexpand roma 'setuptools<75'
-
-if [[ "$(uname)" == "Darwin" ]]; then
-    echo "macOS detected — skipping detectron2, installing ONNX Runtime..."
-    uv pip install onnxruntime
-else
-    echo "Installing detectron2..."
-    uv pip install 'git+https://github.com/facebookresearch/detectron2.git@a1ce2f9' --no-build-isolation --no-deps
+# Run inside the intended environment. GPU users may install their preferred
+# compatible PyTorch wheel first; this command preserves a satisfying version.
+# Optional argument: comma-separated extras, for example "train,eval,dev".
+project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+extras="${1:-base}"
+package="$project_root"
+if [[ "$extras" != base ]]; then
+    package="${project_root}[${extras}]"
 fi
 
-echo "Environment setup complete."
+python -m pip install -e "$package"

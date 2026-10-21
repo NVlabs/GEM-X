@@ -1,3 +1,0 @@
-load_llm: true
-llm_version: "t5-3b"
-max_text_len: 50
