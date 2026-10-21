@@ -39,3 +39,7 @@ examples
 
 # Local presentation artifacts
 *.pptx
+
+# Downloaded model and geometry assets
+/weights/
+/assets/soma/

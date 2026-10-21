@@ -78,12 +78,55 @@ hf download nvidia/GEM-X body_s240000.ckpt vitpose.pth \
 The downloaded video YAML resolves checkpoints relative to `weights/`. The
 [repository example](configs/body_video_native77.yaml) resolves the same files
 from `docs/configs/`; keep each configuration's relative paths when using it.
-Automatic RGB-video inference also needs a separately obtained
-`yolox_humanart.onnx`: place it in `weights/` or edit `detector.checkpoint`.
-The GEM-X checkpoint bundle does not supply that person detector or
-[SOMA geometry assets](INSTALL.md#soma-code-and-assets). Automatic Hand boxes
-use the separately distributed
-[RT-DETR Hand detector](DEMO.md#automatic-hand-boxes).
+Automatic RGB-video inference also needs the person detector below. For
+Contact/IK postprocessing or mesh rendering, follow the versioned
+[SOMA asset download steps](INSTALL.md#soma-code-and-assets). Automatic Hand
+boxes use the separately distributed [RT-DETR Hand detector](DEMO.md#automatic-hand-boxes).
+
+<a id="person-detector-for-body-motion"></a>
+
+### Person detector for Body Pose and Motion
+
+Automatic Body Pose and Body Motion share the YOLOX-X HumanArt ONNX model from
+[OpenMMLab's published ONNX archive](https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_x_8xb8-300e_humanart-a39d44ed.zip).
+Download the archive and extract its `end2end.onnx` to the configured filename.
+Run these commands from the GEM repository root:
+
+```bash
+mkdir -p weights
+curl --fail --location \
+  https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/yolox_x_8xb8-300e_humanart-a39d44ed.zip \
+  --output weights/yolox_humanart.zip
+python - <<'PY'
+from pathlib import Path
+from shutil import copyfileobj
+from zipfile import ZipFile
+
+with ZipFile("weights/yolox_humanart.zip") as archive:
+    member = next(name for name in archive.namelist() if name.endswith("/end2end.onnx"))
+    with archive.open(member) as source, Path("weights/yolox_humanart.onnx").open("wb") as target:
+        copyfileobj(source, target)
+PY
+```
+
+Install `.[video]` for CPU ONNXRuntime. Body Pose uses
+`weights/yolox_humanart.onnx` automatically when `--boxes` is omitted; override
+its location with `--body-detector PATH` and its device with `--detector-device`.
+The default detector device is `cpu`, independently of the Pose `--device`.
+Automatic Body Pose selects one primary person; supplied boxes support multiple
+people and do not need the detector. See [Body inference](DEMO.md#body-image).
+
+Both Motion video configurations resolve `weights/yolox_humanart.onnx` from their
+documented locations. If the detector is stored elsewhere, set
+`detector.checkpoint` to that file; `detector.device: cpu` is independent of the
+Pose/Motion `--device` setting.
+
+For the selected native77 video workflow, `weights/` should contain
+`body_s240000.ckpt`, `vitpose.pth`, `motion_native77_e774_s292175.ckpt`,
+`motion_stats_raw.npz`, `body_video_native77.yaml` and `yolox_humanart.onnx`.
+The extra `motion_native77.yaml` file is the configuration for cached-condition
+inference. The person detector and SOMA assets come from the upstream locations
+above and are separate from the GEM-X checkpoint bundle.
 
 ## Body Pose
 
@@ -93,14 +136,19 @@ coefficients and 57 packed scale values: fixed global scale 1 plus 56 local
 scales. The body training preset uses raw local56 output instead. Use the
 release configuration that belongs to your checkpoint.
 
-With a local Body Pose checkpoint, matching SOMA assets and a
-[box/camera annotation](DEMO.md#body-image), run:
+With a local Body Pose checkpoint, matching SOMA assets and the
+[person detector](#person-detector-for-body-motion), run automatic inference:
 
 ```bash
-gem-infer pose-image --task body --input image.jpg --boxes body_boxes.json \
+gem-infer pose-image --task body --input image.jpg \
   --release body --checkpoint weights/body_s240000.ckpt \
   --soma-assets /path/to/soma-assets --device cuda --output body.pt
 ```
+
+Use `pose-video --task body` for the same model on video frames. Both automatic
+Pose workflows need no ViTPose or Body Motion checkpoint. Supply
+[boxes and camera intrinsics](DEMO.md#supplied-body-boxes) with `--boxes` to bypass
+the detector, or `--intrinsics` to replace the default camera estimate.
 
 The Body Pose checkpoint includes backbone and head weights. Inference requires no
 separate DINO backbone download. Its SOMA 0.3.3 compatibility profile requires
@@ -199,14 +247,29 @@ and `obs_num_joints: 29`, and requires separately trained native29 weights.
 Preserve the camera/time settings and Body Pose feature identifier from the
 checkpoint's training recipe.
 
-Install the `video` extra and [FFmpeg](INSTALL.md#optional-dependencies), then run
-the completed configuration:
+Install the `video` extra and [FFmpeg](INSTALL.md#optional-dependencies), then
+complete the [checkpoint downloads](#download-checkpoints),
+[person detector setup](#person-detector-for-body-motion) and
+[SOMA asset setup](INSTALL.md#soma-code-and-assets) for the desired output.
+For camera/world parameters with Contact/IK postprocessing:
 
 ```bash
 python -m pip install -e '.[video]'
 gem-infer motion-video --task body --input video.mp4 \
-  --config weights/body_video_native77.yaml --device cuda --output motion.pt
+  --config weights/body_video_native77.yaml --device cuda \
+  --postprocess --soma-assets assets/soma --output motion.pt
 ```
+
+On the supported Linux x86-64 rendering environment, install `.[render]` and the
+[Mesa EGL dependencies](INSTALL.md#rendering-dependencies), then render:
+
+```bash
+gem-render --task body --input motion.pt --soma-assets assets/soma \
+  --output-dir rendered_motion
+```
+
+Omit `--postprocess --soma-assets assets/soma` from the inference command for raw
+Motion parameters without geometry postprocessing.
 
 The command produces camera/world body parameters and retains prepared conditions
 for replay. Cached-condition inference can use

@@ -35,7 +35,7 @@ Choose the extras needed for your workflow; they can be combined, for example
 `python -m pip install -e '.[video,hand,render]'` on Linux x86-64.
 
 ```bash
-python -m pip install -e '.[video]'   # ONNXRuntime person detector
+python -m pip install -e '.[video]'   # Body Pose/Motion ONNXRuntime person detector
 python -m pip install -e '.[hand]'    # ONNXRuntime hand detector
 python -m pip install -e '.[render]'  # Open3D mesh/video rendering
 python -m pip install -e '.[train]'   # Lightning and Hydra training integration
@@ -43,9 +43,16 @@ python -m pip install -e '.[eval]'    # Native Hand evaluation and caller-define
 python -m pip install -e '.[dev]'     # Tests, formatting and wheel builds
 ```
 
-Automatic `motion-video --task body` requires the `ffmpeg` executable on PATH and
-a local person detector checkpoint. The `video` extra installs CPU ONNXRuntime;
-Pose and Motion execution follow `--device` independently of the detector.
+Automatic Body Pose (`pose-image` or `pose-video` with `--task body` and no
+`--boxes`) and Body Motion share a local person detector checkpoint; follow the
+[YOLOX download and extraction steps](PRETRAINED_MODELS.md#person-detector-for-body-motion).
+The `video` extra installs CPU ONNXRuntime. Body Pose defaults to
+`weights/yolox_humanart.onnx`; use `--body-detector PATH` to choose another location.
+Its `--detector-device` defaults to `cpu`; Motion uses `detector.device` in its
+configuration. Pose and Motion execution follow `--device` independently.
+Supplied Pose boxes bypass detection and do not require the `video` extra.
+
+Automatic `motion-video --task body` requires the `ffmpeg` executable on PATH.
 On Debian/Ubuntu, install FFmpeg with:
 
 ```bash
@@ -122,27 +129,80 @@ do not need to run again.
 
 ## SOMA code and assets
 
-The base installation includes `py-soma-x==0.3.3`. Verify the installed runtime:
+The base GEM installation includes `py-soma-x==0.3.3`. The geometry data is a
+separate download from [nvidia/SOMA-X](https://huggingface.co/nvidia/SOMA-X/tree/v0.3.3).
+Use the **`v0.3.3` asset revision** with this runtime. Run the commands below from
+the GEM repository root, with the same environment used for GEM:
 
 ```bash
+python -m pip install "py-soma-x==0.3.3" huggingface_hub
 python -c "import soma; print(soma.__version__); print(soma.__file__)"
 ```
 
-Geometry assets are supplied separately. Obtain the SOMA 0.3.3 assets through
-[SOMA-X's documented asset setup](https://github.com/NVlabs/SOMA-X) and pass their
-local directory as `--soma-assets` or the corresponding Python API argument.
+First download the shared body/hand rig and shape data:
 
-- **Body Pose:** native body rig, procedural/reference data and corrective weights.
-  Body Pose uses GEM's Pose twist-binding profile, including the `t_pose_world`
-  reference in the matching assets.
-- **Hand Pose:** `SOMAHand.npz` and its MHR identity model and mesh assets. These
-  assets do not require the SAM-3D-Body Python package.
-- **Body Motion:** the Motion geometry profile for contact/IK and mesh
-  reconstruction, with MID corrective assets for rendering.
+```bash
+hf download nvidia/SOMA-X \
+  SOMA_neutral.npz SOMA_template_rig.usda SOMA_procedural_transforms.json \
+  --revision v0.3.3 --local-dir assets/soma
+```
 
-Use an asset set matched to the model and SOMA 0.3.3 runtime. An older body asset
-directory may lack the reference data needed by the Body Pose profile. GEM selects
-the Body Pose and Motion geometry conventions separately.
+For **Body Pose or Body Motion mesh rendering**, add the corrective weights:
+
+```bash
+hf download nvidia/SOMA-X correctives_model.pt \
+  --revision v0.3.3 --local-dir assets/soma
+```
+
+For **Hand Pose**, add the hand mapping and MHR identity assets. Keep the `MHR/`
+subdirectory created by the download command:
+
+```bash
+hf download nvidia/SOMA-X SOMAHand.npz \
+  MHR/mhr_model_lod1.pt MHR/base_body_lod1.obj MHR/SOMA_wrap_lod1.obj \
+  --revision v0.3.3 --local-dir assets/soma
+```
+
+The required files depend on the task:
+
+| Task | Files in the SOMA asset directory |
+| --- | --- |
+| Body Pose | Shared rig/shape files plus `correctives_model.pt` |
+| Body Motion Contact/IK | Shared rig/shape files |
+| Body Motion mesh rendering | Shared rig/shape files plus `correctives_model.pt` |
+| Hand Pose | Shared rig/shape files, `SOMAHand.npz`, and the three `MHR/` files above |
+
+After downloading all three groups, the directory is:
+
+```text
+assets/soma/
+├── SOMA_neutral.npz
+├── SOMA_template_rig.usda
+├── SOMA_procedural_transforms.json
+├── correctives_model.pt
+├── SOMAHand.npz
+└── MHR/
+    ├── mhr_model_lod1.pt
+    ├── base_body_lod1.obj
+    └── SOMA_wrap_lod1.obj
+```
+
+Pass **`assets/soma` itself** to `--soma-assets`; the rig files should be directly
+inside that directory. For example:
+
+```bash
+export GEM_SOMA_ASSETS="$PWD/assets/soma"
+gem-infer pose-image --task body --input image.jpg \
+  --release body --checkpoint weights/body_s240000.ckpt \
+  --soma-assets "$GEM_SOMA_ASSETS" --device cuda --output body.pt
+```
+
+The tagged assets supply the reference data used by Body Pose and the Motion
+geometry profiles. Hand uses the downloaded MHR model directly and does not
+require the SAM-3D-Body Python package. Parameter-only Motion inference needs
+no SOMA assets; Contact/IK and mesh reconstruction use the files listed above.
+For the upstream asset API and optional workflows, see
+[SOMA-X's installation guide](https://github.com/NVlabs/SOMA-X/blob/main/docs/installation.md).
 
 ## Checkpoints
 

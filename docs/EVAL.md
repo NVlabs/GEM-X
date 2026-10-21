@@ -52,9 +52,11 @@ and the **original `vitpose.pth`**, with **Contact/IK postprocessing enabled**.
 The results cover all 25 EMDB-2 sequences: 43,205 input frames and 43,129 valid
 scored frames. Lower is better for every metric.
 
-| Model | W-MPJPE₁₀₀ (mm) ↓ | WA-MPJPE₁₀₀ (mm) ↓ | RTE (%) ↓ | Jitter score ↓ | Foot sliding (mm) ↓ |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| GEM-motion + Contact PP | 267.20 | 112.76 | 2.45 | 34.21 | 4.22 |
+| W-MPJPE₁₀₀ | WA-MPJPE₁₀₀ | RTE (%) | Jitter | Foot sliding |
+| ---: | ---: | ---: | ---: | ---: |
+| 267.20 | 112.76 | 2.45 | 34.21 | 4.22 |
+
+W-MPJPE₁₀₀, WA-MPJPE₁₀₀ and foot sliding are in millimeters.
 
 **Evaluation settings.** The benchmark uses dataset-provided camera intrinsics
 for feature extraction and Motion conditioning, and dataset-provided camera

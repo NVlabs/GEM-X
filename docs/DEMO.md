@@ -6,8 +6,8 @@ All four commands require `--task`; Motion supports `body` only.
 
 | Command | Use it for | Inputs | Task |
 | --- | --- | --- | --- |
-| `pose-image` | Pose from one image | Boxes or automatic hand detection | `body`, `hand` |
-| `pose-video` | Independent Pose predictions on video frames | Body tracks, hand tracks, or automatic hand detection | `body`, `hand` |
+| `pose-image` | Pose from one image | Supplied boxes or automatic body/hand detection | `body`, `hand` |
+| `pose-video` | Independent Pose predictions on video frames | Supplied tracks or automatic body/hand detection | `body`, `hand` |
 | `motion-video` | Temporal Body Motion in camera and world coordinates | Video; detection, tracking, and features run automatically | `body` |
 | `motion-cache` | Temporal Body Motion from prepared conditions, or contact/IK on saved predictions | A conditions or predictions `.pt` file | `body` |
 
@@ -31,8 +31,37 @@ as `gem-infer`.
 
 ## Body image
 
-Create `boxes.json` with full-image pinhole intrinsics and square boxes.
-Each `bbox` is `[center_x, center_y, size]` in pixels:
+Install the `video` extra and download the
+[YOLOX person detector](PRETRAINED_MODELS.md#person-detector-for-body-motion),
+Body Pose checkpoint and matching SOMA assets. Omitting `--boxes` enables
+automatic detection of the largest person in the image:
+
+```bash
+gem-infer pose-image --task body --input image.jpg \
+  --release body --checkpoint weights/body_s240000.ckpt \
+  --soma-assets assets/soma --device cuda --output body.pt
+```
+
+The detector defaults to `weights/yolox_humanart.onnx`, relative to the working
+directory; override it with `--body-detector PATH`. `--detector-device` defaults
+to `cpu` independently of the Pose model's `--device`. Automatic Body Pose uses
+only the person detector, Body Pose checkpoint and SOMA assets; it does not
+require ViTPose or a Body Motion checkpoint.
+
+Without supplied camera intrinsics, Pose estimates a pinhole camera with
+`fx = fy = max(image_width, image_height)` and the principal point at the image
+center. For a calibrated camera, save a JSON/YAML file with an `intrinsics`
+matrix and pass `--intrinsics camera.json`:
+
+```json
+{"intrinsics": [[800, 0, 320], [0, 800, 240], [0, 0, 1]]}
+```
+
+### Supplied Body boxes
+
+To choose a particular person or reconstruct multiple people, supply
+`--boxes boxes.json`. This bypasses automatic detection. Each square `bbox`
+is `[center_x, center_y, size]` in full-image pixels:
 
 ```json
 {
@@ -41,13 +70,14 @@ Each `bbox` is `[center_x, center_y, size]` in pixels:
 }
 ```
 
-Run Body Pose:
-
 ```bash
 gem-infer pose-image --task body --input image.jpg --boxes boxes.json \
   --release body --checkpoint weights/body_s240000.ckpt \
-  --soma-assets /path/to/soma-assets --device cuda --output body.pt
+  --soma-assets assets/soma --device cuda --output body.pt
 ```
+
+Add one instance with its own `track_id` for each person. `--intrinsics` overrides
+the matrix in the annotation file.
 
 Both Pose commands accept a named `--release` preset or a release JSON/YAML.
 When you omit it, native `gem-train pose` checkpoints supply their architecture
@@ -57,7 +87,25 @@ architecture, supply a matching release configuration explicitly.
 
 ## Body framewise video
 
-Save frame-indexed boxes as `body_tracks.json`:
+Omit `--boxes` to detect and track one primary person automatically with YOLOX
+and ByteTrack, then run Body Pose independently on each crop:
+
+```bash
+gem-infer pose-video --task body --input video.mp4 \
+  --release body --checkpoint weights/body_s240000.ckpt \
+  --soma-assets assets/soma --device cuda --output body_video.pt
+```
+
+This uses the same detector path and camera options as [Body image](#body-image).
+The primary track has the largest cumulative bounding-box area over the clip.
+Tracked boxes use gap interpolation, smoothing and square-crop preparation.
+The source video's original frame indices and frame rate are preserved.
+Body Pose produces camera-space geometry; it needs no ViTPose or Body Motion
+weights. For learned temporal prediction and world-space motion, use
+[Body Motion](#automatic-body-video).
+
+To supply your own tracks, save frame-indexed boxes as `body_tracks.json` and
+add `--boxes body_tracks.json`:
 
 ```json
 {
@@ -72,18 +120,17 @@ Save frame-indexed boxes as `body_tracks.json`:
 ```bash
 gem-infer pose-video --task body --input video.mp4 --boxes body_tracks.json \
   --release body --checkpoint weights/body_s240000.ckpt \
-  --soma-assets /path/to/soma-assets --device cuda --output body_video.pt
+  --soma-assets assets/soma --device cuda --output body_video.pt
 ```
 
 Frame IDs are zero-based decoded source-video frames. Include every frame for
 complete coverage, or annotate only the frames you need; unlisted frames remain
-absent. The command uses the supplied tracks without running a body detector.
+absent. Supplied tracks bypass the detector and preserve your frame coverage.
 Multiple people in one frame need distinct `track_id` values.
 
 Per-frame `intrinsics` overrides the shared matrix. `--intrinsics camera.json`
 overrides intrinsics for the entire invocation. Output geometry is in camera
-coordinates. For automatic person tracking and temporal world-space motion,
-use [Body Motion](#automatic-body-video).
+coordinates.
 
 ## Hand image or framewise video
 
@@ -393,8 +440,10 @@ requiring its own matching weights.
 
 Prepare the configuration before running:
 
-1. Follow [checkpoint downloads](PRETRAINED_MODELS.md#download-checkpoints) and set
-   checkpoint and statistics paths. Paths resolve relative to the YAML file.
+1. Install the `video` extra and [FFmpeg](INSTALL.md#optional-dependencies), then
+   follow [checkpoint downloads](PRETRAINED_MODELS.md#download-checkpoints) and
+   [YOLOX extraction](PRETRAINED_MODELS.md#person-detector-for-body-motion).
+   Checkpoint and statistics paths resolve relative to the YAML file.
 2. Keep the original ViTPose identifier in both native77 detector-ID fields.
    For the separate native29 template, replace its `YOUR_NATIVE77_RELEASE_ID`
    placeholders with the identifier for that checkpoint's matched detector.
@@ -402,9 +451,10 @@ Prepare the configuration before running:
    compatible. Changing `obs_num_joints` does not convert checkpoint layouts.
 
 Both templates use YOLOX ONNX person detection, native77 2D keypoint observations,
-and Body Pose features. Supply `yolox_humanart.onnx` separately in `weights/` or
-set its local path; it is not included in the GEM-X checkpoint bundle. SOMA assets
-are also separate and are needed for mesh rendering and Contact/IK postprocessing.
+and Body Pose features. The download instructions place the extracted detector
+at `weights/yolox_humanart.onnx`. For Contact/IK postprocessing and mesh rendering,
+also download the [SOMA v0.3.3 assets](INSTALL.md#soma-code-and-assets) into
+`assets/soma/` and pass that directory with `--soma-assets`.
 Native29 selects its 29-joint subset inside Motion. Another
 Body feature release needs its matching configuration and feature ID.
 `motion-video` uses these explicit settings rather than Pose's automatic
@@ -414,6 +464,18 @@ checkpoint release discovery.
 gem-infer motion-video --task body --input video.mp4 \
   --config docs/configs/body_video_native77.yaml \
   --start 0 --duration 5 --device cuda --output motion.pt
+```
+
+To apply Contact/IK and render the result, prepare the SOMA assets and
+[rendering dependencies](INSTALL.md#rendering-dependencies), then run:
+
+```bash
+gem-infer motion-video --task body --input video.mp4 \
+  --config docs/configs/body_video_native77.yaml \
+  --start 0 --duration 5 --device cuda --postprocess \
+  --soma-assets assets/soma --output motion.pt
+gem-render --task body --input motion.pt --soma-assets assets/soma \
+  --output-dir rendered_motion
 ```
 
 `--start` and `--duration` are in seconds; clips can be at most 60 seconds.
@@ -709,84 +771,3 @@ canonical model frame even when geometry describes the physical right hand.
 Motion is raw by default. After `--postprocess`, main parameter fields hold the
 processed prediction, `raw_predictions` retains the original parameters and
 coordinates, and `postprocessing` records diagnostics.
-
-## README showcases
-
-The [13.2-second full-body overview](../assets/gemx_overview.mp4) combines
-single-image Body Pose, temporal Body Motion, and the downstream G1 application.
-Hand Pose has its own [standalone film](../assets/hand_pose.mp4).
-
-| Time | Contents |
-| --- | --- |
-| 0–1.2 s | Body Pose inferred independently from the first nighttime image, with a display-camera orbit |
-| 1.2–4.2 s | The same source begins moving: fast nighttime steps in camera and world views |
-| 4.2–7.2 s | Daylight Body Motion: camera overlay and world view |
-| 7.2–10.2 s | A second nighttime sequence: camera overlay and world motion |
-| 10.2–13.2 s | The second nighttime action continues in three views: camera, SOMA world, and G1 |
-
-The [daylight film](../assets/body_pose_motion.mp4) contains the 1.2-second
-single-image chapter followed by all six seconds of its Motion sequence.
-The [nighttime film](../assets/body_motion_night.mp4) shows its complete
-six-second Motion sequence. Both preserve source playback speed on a 30 fps
-presentation timeline. Checkerboard floors remain visible; root trajectory
-curves are hidden. Body meshes use the same blue material across image, camera,
-and world views. Each image chapter uses the source frame and crop of the
-video segment that follows.
-
-The body models are Body Pose `body_s240000.ckpt` and Body Motion native77
-final775, with ViTPose random-blur epoch10 observations and SOMA 0.3.3 geometry.
-These films retain their original detector setup. The release checkpoint
-bundle selects the original `vitpose.pth` instead; use the matched configuration
-in [Pretrained Models](PRETRAINED_MODELS.md#body-motion-choose-a-matched-set).
-**All temporal Body Motion shown here uses Contact/IK postprocessing in both
-camera and world views.** Run inference with `--postprocess` and
-`--soma-assets /path/to/soma-assets`, then render the saved active result,
-or select `--variant postprocessed` when rendering a result
-that already contains both variants. CLI inference remains raw by default.
-The independent single-image Body Pose and separate Hand Pose demo are outside
-this temporal Body Motion operation. Visible reconstruction errors remain.
-
-Footage:
-
-- **Fast nighttime opening (Night 02):** [Talented urban woman dancing at night on a basketball court](https://mixkit.co/free-stock-video/talented-urban-woman-dancing-at-night-on-a-basketball-court-51314/)
-  from Mixkit, seconds 0–3, under the
-  [Mixkit Stock Video Free License](https://mixkit.co/license/#videoFree).
-  The overview opens with independent Body Pose inference from frame 0 of this
-  sequence, normalized to 30 fps, then starts Motion at that same frame and crop.
-- **Daylight:** [A Young Girl Dancing In The Street](https://www.pexels.com/video/street-girl-dancing-dance-4540332/)
-  by olia danilevich, seconds 0.5–6.5, under the
-  [Pexels License](https://www.pexels.com/license/).
-  The standalone daylight film uses independent image inference from frame 0
-  of this sequence, normalized to 30 fps. The overview uses only its Motion
-  frames 30–119; its single-image chapter comes from Night 02 instead.
-- **Second night sequence (Night 01) and G1:** [Boy dancing a lively choreography in the street](https://mixkit.co/free-stock-video/boy-dancing-a-lively-choreography-in-the-street-51320/)
-  from Mixkit, seconds 6–12, under the
-  [Mixkit Stock Video Free License](https://mixkit.co/license/#videoFree).
-
-The [Hand GIF](../assets/hand_pose.gif) and [Hand film](../assets/hand_pose.mp4)
-use the EgoHand 1.0-GA showcase, retaining its complete 24-second sequence.
-The README embeds a smaller GIF for inline playback; the linked MP4 uses the
-1280 × 720 source. This presentation reuses the existing showcase rather than
-adding a new run of the selected `egohand_s060000.ckpt` checkpoint.
-
-## G1 retargeting showcase
-
-The [G1 film](../assets/g1_retarget.mp4) shows a downstream application of
-recovered SOMA motion in three synchronized columns:
-
-- **CAMERA:** original nighttime video revealing its blue body-mesh overlay.
-- **WORLD:** the reconstructed human motion in world coordinates.
-- **UNITREE G1:** the same motion retargeted to the humanoid robot.
-
-Retargeting is performed by [SOMA Retargeter](https://github.com/NVIDIA/soma-retargeter),
-which supplies the robot-specific conversion and assets. Follow that project's
-installation and input-format guidance when building a retargeting workflow.
-
-This six-second film was retargeted from the same **postprocessed** nighttime
-Body Motion shown above, with 180 matching frame indices at 30 fps. The source
-video, SOMA body, and G1 follow the same timeline. In the overview, the transition
-from nighttime human reconstruction to G1 continues the source action.
-The unified inference commands documented above
-produce SOMA motion; robot retargeting is a separate downstream step. The film
-demonstrates kinematic motion, without implying a simulated or physical robot
-tracking-policy result.

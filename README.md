@@ -13,6 +13,7 @@
 </p>
 
 <p align="center">
+  <a href="#news">News</a> ·
   <a href="#quick-start">Quick Start</a> ·
   <a href="#pretrained-models">Pretrained Models</a> ·
   <a href="#evaluation">Evaluation</a> ·
@@ -24,28 +25,33 @@
 
 <p align="center">
   <a href="assets/gemx_overview.mp4">
-    <img src="assets/gemx_overview.gif" width="100%" alt="GEM-X full-body overview: single-image Body Pose, fast nighttime steps, daylight Motion, a second night sequence, and synchronized motion retargeted to G1">
+    <img src="assets/gemx_overview.gif" width="800" alt="GEM-X full-body overview: single-image Body Pose, fast nighttime steps, daylight Motion, a second night sequence, and synchronized motion retargeted to G1">
   </a>
   <br>
   <b>Full-body pose and motion from images and video.</b>
-  <br>
-  <sub>A 13-second full-body showcase, ending with motion retargeted to Unitree G1. Click to watch in 720p.</sub>
 </p>
-
-<p align="center"><sub>Body Motion views use Contact/IK postprocessing. <a href="#hand-showcase">Hand teaser</a> · <a href="docs/DEMO.md#readme-showcases">Showcase notes and source credits</a></sub></p>
 
 <a id="hand-showcase"></a>
 <p align="center">
   <a href="assets/hand_pose.mp4">
-    <img src="assets/hand_pose.gif" width="100%" alt="EgoHand 1.0-GA showcase: source video, hand skeletons, close-up details, and reconstructed left and right hands">
+    <img src="assets/hand_pose.gif" width="800" alt="EgoHand 1.0-GA showcase: source video, hand skeletons, close-up details, and reconstructed left and right hands">
   </a>
   <br>
   <b>Detailed hand pose from images and video.</b>
-  <br>
-  <sub>The full 24-second EgoHand 1.0-GA showcase. Click to watch in 720p.</sub>
 </p>
 
-## Overview
+<a id="news"></a>
+
+## 📰 News
+
+- **[2026-10-21]** 🚀 GEM-X supports **Hand Pose** alongside **Body Pose** and temporal **Body Motion**, with image/video inference, shared training workflows, and fine-tuning from pretrained Pose checkpoints. Get started with the [Quick Start](#quick-start) and [pretrained models](#pretrained-models).
+- **[2025-06]** Added ONNX/TensorRT acceleration to the original GEM demo.
+- **[2025-06]** Added motion retargeting to Unitree G1 with [SOMA Retargeter](https://github.com/NVIDIA/soma-retargeter).
+- **[2025-05]** Released the original **GEM** codebase.
+
+<a id="overview"></a>
+
+## 🔎 Overview
 
 GEM-X provides **Body Pose**, **Hand Pose**, and **Body Motion** in a shared
 framework for inference, training, and evaluation. Body and Hand Pose reconstruct
@@ -53,7 +59,9 @@ framework for inference, training, and evaluation. Body and Hand Pose reconstruc
 camera-space and world-space human motion from monocular video. All three models
 use [SOMA](https://github.com/NVlabs/SOMA-X) geometry.
 
-## Key Features
+<a id="key-features"></a>
+
+## ✨ Key Features
 
 - **Full-body and hand reconstruction** — dedicated image models for body pose
   and detailed left and right hand geometry.
@@ -61,13 +69,15 @@ use [SOMA](https://github.com/NVlabs/SOMA-X) geometry.
   Pose features feed a temporal model that predicts camera-space and world-space motion.
 - **Flexible hand inputs** — supplied boxes or RT-DETR detection, ego/exo
   processing profiles, optional tracking and smoothing, and calibrated camera adapters.
-- **Robotics showcase** — recovered SOMA motion retargeted to Unitree G1 with [SOMA Retargeter](https://github.com/NVIDIA/soma-retargeter); see the [application demo](docs/DEMO.md#g1-retargeting-showcase).
+- **Robotics showcase** — recovered SOMA motion retargeted to Unitree G1 with [SOMA Retargeter](https://github.com/NVIDIA/soma-retargeter); see the [application demo](assets/g1_retarget.mp4).
 - **Training and fine-tuning** — train Body Pose, Hand Pose, and Body Motion;
   fine-tune pretrained weights or resume a complete training checkpoint.
 - **Visualization and evaluation** — render saved predictions, apply optional
   contact/IK correction, and evaluate with native Hand metrics or custom evaluators.
 
-## Models and Inference Modes
+<a id="models-and-inference-modes"></a>
+
+## 🧩 Models and Inference Modes
 
 There are **three models and four inference modes**. The command identifies the
 model family and input type; `--task` selects body or hand.
@@ -83,7 +93,9 @@ model family and input type; `--task` selects body or hand.
 optional processing stages; learned temporal prediction is provided by Body Motion.
 See [Model Overview](docs/MODEL_OVERVIEW.md) for architecture and output conventions.
 
-## Quick Start
+<a id="quick-start"></a>
+
+## 🚀 Quick Start
 
 ### 1. Install
 
@@ -106,24 +118,33 @@ ARM64 inference, and optional dependencies.
 
 ### 2. Prepare weights and assets
 
-Place the required checkpoints locally and obtain the matching SOMA 0.3.3 geometry
-assets. The Python runtime is installed with GEM; model weights and geometry
-assets are supplied separately. Follow [Pretrained Models](docs/PRETRAINED_MODELS.md)
-for the files needed by each model.
+GEM installs the SOMA 0.3.3 Python runtime. Download the model and geometry files
+separately, following the instructions for your task:
+
+1. Download the [model checkpoints](docs/PRETRAINED_MODELS.md#download-checkpoints)
+   into `weights/`.
+2. For automatic Body Pose or Body Motion, download and extract the
+   [YOLOX person detector](docs/PRETRAINED_MODELS.md#person-detector-for-body-motion)
+   to `weights/yolox_humanart.onnx`.
+3. Download the [SOMA v0.3.3 assets](docs/INSTALL.md#soma-code-and-assets)
+   into `assets/soma/`. The examples below use that directory.
 
 ### 3. Run inference
 
 **Body Pose — image**
 
-Supply camera intrinsics and square bounding boxes in
-[`boxes.json`](docs/DEMO.md#body-image):
+Detect the main person automatically using `weights/yolox_humanart.onnx`:
 
 ```bash
-gem-infer pose-image --task body --input image.jpg --boxes boxes.json \
+gem-infer pose-image --task body --input image.jpg \
   --release body --checkpoint weights/body_s240000.ckpt \
-  --soma-assets /path/to/soma-assets --device cuda --output body.pt
+  --soma-assets assets/soma --device cuda --output body.pt
 gem-render --task body --input body.pt --output-dir outputs/body
 ```
+
+Use `--body-detector PATH` for another detector location. For calibrated cameras
+or multiple people, see [camera settings and supplied boxes](docs/DEMO.md#body-image).
+The same automatic setup supports [framewise Body Pose video](docs/DEMO.md#body-framewise-video).
 
 **Hand Pose — video**
 
@@ -134,7 +155,7 @@ Use the [EgoHand checkpoint](https://huggingface.co/nvidia/EgoHand-v1) and a loc
 gem-infer pose-video --task hand --input video.mp4 \
   --release hand --checkpoint weights/egohand_s060000.ckpt \
   --hand-detector weights/hand_detector.onnx \
-  --soma-assets /path/to/soma-assets --device cuda --output hands.pt
+  --soma-assets assets/soma --device cuda --output hands.pt
 gem-render --task hand --input hands.pt --output-dir outputs/hand
 ```
 
@@ -151,8 +172,8 @@ Configure the local model paths and 2D keypoint detector identifier in
 ```bash
 gem-infer motion-video --task body --input video.mp4 \
   --config docs/configs/body_video_native77.yaml --device cuda \
-  --postprocess --soma-assets /path/to/soma-assets --output motion.pt
-gem-render --task body --input motion.pt --soma-assets /path/to/soma-assets \
+  --postprocess --soma-assets assets/soma --output motion.pt
+gem-render --task body --input motion.pt --soma-assets assets/soma \
   --device cuda --output-dir outputs/motion
 ```
 
@@ -161,7 +182,9 @@ for the Contact/IK correction shown in the films; omit it for raw predictions.
 The [Inference guide](docs/DEMO.md) explains input formats, output fields, cached
 prediction, camera handling, and postprocessing.
 
-## Pretrained Models
+<a id="pretrained-models"></a>
+
+## 📦 Pretrained Models
 
 Download the weights for your task from the following Hugging Face repositories:
 
@@ -180,7 +203,9 @@ Native29 is an alternate layout for separately trained weights.
 See [Pretrained Models](docs/PRETRAINED_MODELS.md) for checkpoint availability,
 asset requirements, matching detector identifiers, and compatibility details.
 
-## Evaluation
+<a id="evaluation"></a>
+
+## 📊 Evaluation
 
 ### GEM-pose · Body Pose
 
@@ -198,15 +223,18 @@ EMDB-2 results use **original ViTPose**, the released **native77 final775**
 checkpoint and **Contact/IK postprocessing enabled**. The benchmark uses
 provided camera intrinsics and camera rotations. Lower is better.
 
-| Dataset | W-MPJPE₁₀₀ (mm) ↓ | WA-MPJPE₁₀₀ (mm) ↓ | RTE (%) ↓ | Jitter score ↓ | Foot sliding (mm) ↓ |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| EMDB-2 | 267.20 | 112.76 | 2.45 | 34.21 | 4.22 |
+| W-MPJPE₁₀₀ | WA-MPJPE₁₀₀ | RTE (%) | Jitter | Foot sliding |
+| ---: | ---: | ---: | ---: | ---: |
+| 267.20 | 112.76 | 2.45 | 34.21 | 4.22 |
 
+W-MPJPE₁₀₀, WA-MPJPE₁₀₀ and foot sliding are in millimeters.
 Jitter uses the reference reporting scale: mean jerk at 30 Hz divided by 10.
 See [evaluation settings and metric definitions](docs/EVAL.md#release-benchmark-results)
 for coverage, alignment and aggregation details.
 
-## Training & Evaluation
+<a id="training--evaluation"></a>
+
+## 🏋️ Training & Evaluation
 
 Install the training and evaluation dependencies:
 
@@ -230,7 +258,9 @@ To fine-tune Hand Pose from `egohand_s060000.ckpt`, use the
 Pose and Motion support caller-provided evaluators. See [Evaluation](docs/EVAL.md)
 for configuration and metric definitions.
 
-## Documentation
+<a id="documentation"></a>
+
+## 📚 Documentation
 
 | Guide | Contents |
 | --- | --- |
@@ -246,7 +276,9 @@ for configuration and metric definitions.
 
 For development setup and contribution guidelines, see [Contributing](CONTRIBUTING.md).
 
-## Production Deployment with NVIDIA AI for Media
+<a id="production-deployment-with-nvidia-ai-for-media"></a>
+
+## 🏭 Production Deployment with NVIDIA AI for Media
 
 For developers looking to integrate 3D body pose estimation into real-world
 applications, NVIDIA provides production-ready deployment options through the
@@ -264,7 +296,9 @@ Explore the full
 [NVIDIA Augmented Reality SDK](https://catalog.ngc.nvidia.com/orgs/nvidia/maxine/collections/maxine_ar_sdk/-)
 for additional AI-powered video capabilities.
 
-## License
+<a id="license"></a>
+
+## 📄 License
 
 The default source license is [Apache 2.0](LICENSE). Adapted Hand processing
 files and the source-camera restoration function retain their
@@ -274,3 +308,4 @@ complete mapping of file and function exceptions, and
 
 Model weights, geometry assets, and dependencies retain their respective terms;
 see their distributions and the component notices in [ATTRIBUTIONS.md](ATTRIBUTIONS.md).
+Media sources and credits are listed in [assets/CREDITS.md](assets/CREDITS.md).

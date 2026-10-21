@@ -1,6 +1,8 @@
 # Native77 final775 Body Motion with original ViTPose and Body Pose features.
 # Paths resolve relative to this file and use the repository-level weights folder.
-# Obtain yolox_humanart.onnx separately or change detector.checkpoint.
+# Download/extract yolox_humanart.onnx using docs/PRETRAINED_MODELS.md,
+# "Person detector for Body Motion", or change detector.checkpoint.
+# Contact/IK and rendering use the assets/soma setup in docs/INSTALL.md.
 # Keep the statistics sidecar for this checkpoint. Remove stats only when using
 # a GEM training checkpoint that includes its codec statistics.
 pose:
