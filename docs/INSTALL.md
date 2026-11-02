@@ -70,6 +70,19 @@ A CUDA detector requires an ONNXRuntime installation with
 `CUDAExecutionProvider`. GEM uses the requested provider and requires you to
 supply detector weights locally.
 
+## Optional ViPE cameras
+
+Moving-camera Body Motion can run ViPE automatically with
+`gem-infer motion-video --task body --camera-mode vipe`. Install
+[ViPE](https://github.com/nv-tlabs/vipe/blob/main/docs/installation.md) in a separate
+environment, then pass its absolute executable path with
+`--vipe-executable /path/to/vipe/.venv/bin/vipe`. This keeps ViPE's CUDA/PyTorch
+build dependencies separate from GEM. ViPE is not included in the `video` extra;
+the other camera modes do not require it.
+
+See [Body Motion with ViPE cameras](VIPE_CAMERA.md) for setup, the complete
+inference command, and pinhole-camera requirements.
+
 ## Contact/IK dependencies
 
 Contact/IK postprocessing requires the base package and matching SOMA 0.3.3 body

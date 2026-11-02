@@ -21,6 +21,7 @@ from .camera_motion import camera_motion
 from .inputs import load_mapping
 from .motion import load_predictor, run_motion
 from .serialization import tensor_tree
+from .vipe import run_vipe_camera
 
 
 def load_body_video_config(path):
@@ -38,6 +39,10 @@ def load_body_video_config(path):
             value = config.get(section, {}).get(key)
             if value is not None:
                 config[section][key] = str((path.parent / value).resolve())
+    vipe = config.get("camera", {}).get("vipe", {})
+    executable = vipe.get("executable")
+    if executable is not None and "/" in executable:
+        vipe["executable"] = str((path.parent / executable).resolve())
     return config
 
 
@@ -79,7 +84,7 @@ def extract_body_features(frames, boxes, intrinsics, model, *, batch_size, devic
             batch = prepare_pose_batch(
                 frames[start:stop],
                 boxes[start:stop],
-                intrinsics,
+                intrinsics[start:stop] if intrinsics.ndim == 3 else intrinsics,
                 device=device,
                 crop_convention="motion_training",
             )
@@ -114,7 +119,21 @@ def build_body_conditions(frames, config, *, device="cpu", progress=None):
     if actual != expected:
         raise ValueError(f"Body video feature/detector release mismatch: {actual} != {expected}")
     camera_config = config.get("camera", {})
-    intrinsics = motion_intrinsics(frames.width, frames.height, camera_config.get("intrinsics"))
+    mode = camera_config.get("mode", "background")
+    if mode == "vipe":
+        # Finish the external camera stage before allocating GEM's models.
+        stage("Estimating camera poses and intrinsics with ViPE")
+        camera = run_vipe_camera(
+            frames.path, frame_count=len(frames), **camera_config.get("vipe", {})
+        )
+        intrinsics = camera["K_fullimg"]
+        if camera_config.get("intrinsics") is not None:
+            intrinsics = motion_intrinsics(frames.width, frames.height, camera_config["intrinsics"])
+            camera["diagnostics"]["intrinsics_source"] = "configuration_override"
+        else:
+            camera["diagnostics"]["intrinsics_source"] = "vipe"
+    else:
+        intrinsics = motion_intrinsics(frames.width, frames.height, camera_config.get("intrinsics"))
     stage("Detecting and tracking the primary person")
     options = dict(config["detector"])
     detector = YOLOXONNX(options.pop("checkpoint"), **options)
@@ -133,19 +152,20 @@ def build_body_conditions(frames, config, *, device="cpu", progress=None):
     detector_release = detector.release_id
     del detector
 
-    stage("Estimating camera rotation")
-    rotations = camera_config.get("rotations")
-    if rotations is not None:
-        rotations = np.load(rotations)
-    camera = camera_motion(
-        frames,
-        intrinsics.numpy(),
-        tracks.boxes_xyxy,
-        mode=camera_config.get("mode", "background"),
-        rotations=rotations,
-        keypoints=keypoints.numpy(),
-        **camera_config.get("options", {}),
-    )
+    if mode != "vipe":
+        stage("Estimating camera rotation")
+        rotations = camera_config.get("rotations")
+        if rotations is not None:
+            rotations = np.load(rotations)
+        camera = camera_motion(
+            frames,
+            intrinsics.numpy(),
+            tracks.boxes_xyxy,
+            mode=mode,
+            rotations=rotations,
+            keypoints=keypoints.numpy(),
+            **camera_config.get("options", {}),
+        )
 
     stage("Extracting frozen body Pose features")
     pose = load_pose_checkpoint(config["pose"]["checkpoint"], release, device=device)
@@ -165,7 +185,7 @@ def build_body_conditions(frames, config, *, device="cpu", progress=None):
         "f_imgseq": features.unsqueeze(0),
         "kp2d_native77": keypoints.unsqueeze(0),
         "bbx_xys": torch.from_numpy(tracks.boxes_xys).unsqueeze(0),
-        "K_fullimg": intrinsics.expand(1, len(frames), 3, 3).clone(),
+        "K_fullimg": intrinsics.expand(len(frames), 3, 3).unsqueeze(0).clone(),
         "cam_angvel": camera["cam_angvel"].unsqueeze(0),
         "frame_times": (torch.arange(len(frames), dtype=torch.float64) / 30).unsqueeze(0),
         "sampling_fps": 30.0,

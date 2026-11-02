@@ -18,9 +18,11 @@ include assets/body_pose_motion_poster.png assets/g1_retarget_poster.png
 include assets/gemx_overview.gif assets/gemx_overview.mp4 assets/gemx_overview_poster.png
 include assets/body_motion_night.mp4 assets/body_motion_night_poster.png assets/hand_pose_poster.png
 include scripts/predict.py scripts/train_pose.py scripts/train_motion.py scripts/evaluate_pose.py
+include scripts/demo_motion_vipe.sh
 include scripts/make_pose_example.py scripts/make_hand_pose_example.py scripts/install_env.sh
 include docs/ARCHITECTURE.md docs/DEMO.md docs/INSTALL.md docs/MODEL_OVERVIEW.md
 include docs/PRETRAINED_MODELS.md
+include docs/VIPE_CAMERA.md
 include docs/TRAINING.md docs/POSE_TRAINING.md docs/HAND_TRAINING.md docs/EVAL.md
 include docs/BODY_BENCHMARKS.md
 include docs/MOTION_BENCHMARKS.md
@@ -48,6 +50,7 @@ include tests/motion/test_evaluation.py tests/motion/test_cache_data.py
 include tests/motion/test_benchmark_metrics.py tests/motion/test_benchmark_geometry.py
 include tests/motion/test_benchmark_runner.py tests/motion/test_prepare_benchmarks.py
 include tests/inference/test_entrypoints.py
+include tests/inference/test_vipe.py tests/inference/test_vipe_integration.py
 include tests/common/test_camera_adapters.py
 include tests/inference/test_hand_inputs.py tests/inference/test_pose_camera_adapters.py
 include tests/inference/test_render_pose.py tests/pose/test_hand_smoothing.py
