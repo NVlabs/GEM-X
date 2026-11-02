@@ -217,6 +217,10 @@ millimeters; lower is better.
 | 3DPW | 62.20 | 39.56 | 72.89 |
 | EMDB-1 | 67.83 | 43.14 | 80.27 |
 
+The [Body Pose benchmark guide](docs/BODY_BENCHMARKS.md) covers official dataset
+downloads, local preparation and fixed 3DPW/EMDB-1 joint evaluation configurations.
+Projector downloads are pending publication; the joint runner does not compute PVE.
+
 ### GEM-motion · Body Motion
 
 EMDB-2 results use **original ViTPose**, the released **native77 final775**
@@ -254,8 +258,9 @@ To fine-tune Hand Pose from `egohand_s060000.ckpt`, use the
 [Hand fine-tuning recipe](docs/HAND_TRAINING.md#egohand-fine-tuning).
 
 `gem-eval pose` evaluates Body or Hand Pose; Body Motion uses
-`gem-train motion --validate`. Native SOMA25 Hand metrics are included, and Body
-Pose and Motion support caller-provided evaluators. See [Evaluation](docs/EVAL.md)
+`gem-train motion --validate`. Body Pose includes 3DPW/EMDB-1 joint protocols;
+Hand includes native SOMA25 metrics. Custom Body and Motion evaluators remain
+supported. See [Evaluation](docs/EVAL.md)
 for configuration and metric definitions.
 
 <a id="documentation"></a>
@@ -271,6 +276,7 @@ for configuration and metric definitions.
 | [Body Pose Training](docs/POSE_TRAINING.md) | Body sample format, objectives, and initialization |
 | [Hand Pose Training](docs/HAND_TRAINING.md) | Hand fine-tuning, canonical inputs, and objectives |
 | [Evaluation](docs/EVAL.md) | Release benchmark results, metric definitions, and custom evaluators |
+| [Body Pose Benchmarks](docs/BODY_BENCHMARKS.md) | Official downloads, raw-data preparation, and 3DPW/EMDB-1 joint evaluation |
 | [Model Overview](docs/MODEL_OVERVIEW.md) | Model architectures, conditioning, and outputs |
 | [Architecture](docs/ARCHITECTURE.md) | Package structure and component responsibilities |
 

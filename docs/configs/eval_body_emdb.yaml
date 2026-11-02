@@ -1,0 +1,24 @@
+# Body Pose s240000: official EMDB-1 split, 24-joint protocol.
+# Prepare local data and download the projector as described in BODY_BENCHMARKS.md.
+name: body_pose_emdb1
+device: cuda
+precision: 32-true
+predictor:
+  _target_: gem.pose.evaluation.runner.load_evaluation_predictor
+  checkpoint: ${oc.env:GEM_POSE_CHECKPOINT}
+  soma_assets: ${oc.env:GEM_SOMA_ASSETS}
+  release:
+    _target_: gem.pose.api.body_config
+data:
+  _target_: gem.pose.data.benchmarks.BodyBenchmarkDataset
+  dataset_file: ${oc.env:GEM_EMDB_PREPARED}
+  dataset_root: ${oc.env:GEM_EMDB_ROOT}
+loader:
+  batch_size: 64
+  num_workers: 8
+evaluator:
+  _target_: gem.pose.evaluation.body.BodyPoseEvaluator
+  protocol: emdb
+  joint_projector:
+    _target_: gem.pose.evaluation.body.BodyJointProjector.from_asset
+    path: ${oc.env:GEM_EVAL_ASSETS}/emdb_projector.pt

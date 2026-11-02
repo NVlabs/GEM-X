@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add Body Pose 3DPW-test and EMDB-1 joint evaluation, with official dataset/model
+  download guidance, local raw-data preparation and fixed `body_s240000.ckpt`
+  configurations. Report MPJPE, PA-MPJPE and scale-MPJPE; PVE is outside this
+  runner. Joint projector downloads are pending publication for this draft.
 - Run Body Pose on images or videos without supplied boxes, reusing YOLOX
   person detection and ByteTrack for the primary person. Preserve source video
   timing and retain explicit boxes for caller-selected or multiple people.

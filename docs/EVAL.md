@@ -8,7 +8,7 @@ The entry points share metric utilities but use different data contracts:
 
 | Model | Evaluation path | Evaluator |
 | --- | --- | --- |
-| Body Pose | `gem-eval pose --task body` | Caller-provided [Body evaluator](#body-evaluation) |
+| Body Pose | `gem-eval pose --task body` | Built-in [3DPW and EMDB-1 joint benchmarks](BODY_BENCHMARKS.md), or a custom evaluator |
 | Hand Pose | `gem-eval pose --task hand` | Built-in [native SOMA25 evaluator](#native-hand-evaluation) |
 | Body Motion | `gem-train motion --validate` | Caller-provided [sequence evaluator](TRAINING.md#motion-validation) |
 
@@ -44,6 +44,11 @@ joint error after pelvis translation alignment. PA-MPJPE additionally fits a
 similarity transform. PVE measures corresponding mesh-vertex error after pelvis
 translation alignment, without fitting rotation or scale. Each evaluation
 sample has equal weight; batch means are not averaged together.
+
+The [Body Pose benchmark guide](BODY_BENCHMARKS.md) supplies official download
+links, raw-data preparation and fixed configurations for MPJPE, PA-MPJPE and
+scale-MPJPE. The two joint projector downloads are pending publication in this
+draft release. The public runner does not compute the PVE column above.
 
 ### GEM-motion: EMDB-2
 
@@ -87,17 +92,18 @@ for foot sliding. The table uses postprocessed predictions throughout.
 ### Benchmark results and evaluator interfaces
 
 The tables report the selected checkpoints under the stated benchmark settings.
-Dataset adapters, reference-label preparation and benchmark-specific scoring
-implementations are not included in the public package. The commands below
-run caller-configured evaluators; they are not bundled EMDB or 3DPW runners.
-The downloaded Motion inference weights are also not a native training
+Body Pose includes raw-data preparation and joint scoring for 3DPW test and
+EMDB-1; follow the [benchmark guide](BODY_BENCHMARKS.md) for its asset status,
+download instructions and commands. PVE and the temporal Motion benchmarks are
+outside that runner. Motion validation continues to use a caller-provided
+sequence evaluator. The downloaded Motion inference weights are not a native training
 checkpoint for `--resume`; see [checkpoint loading modes](PRETRAINED_MODELS.md#initialization-inference-and-full-resume).
 
 ## Commands
 
 ```bash
 python -m pip install -e '.[eval]'
-gem-eval pose --task body --config body_evaluation.yaml --output body_metrics.json
+gem-eval pose --task body --config docs/configs/eval_body_3dpw.yaml --output body_metrics.json
 gem-eval pose --task hand --config hand_evaluation.yaml --output hand_metrics.json
 ```
 
@@ -107,7 +113,8 @@ their release configuration. Weights without that metadata require an explicit
 matching `release` in the predictor configuration. The
 [Hand SOMA25 example](configs/eval_hand_soma25.yaml) uses the built-in native
 Hand evaluator.
-Body Pose evaluation requires a caller-provided evaluator, described below.
+The Body command requires the environment paths and prepared dataset from the
+[Body Pose benchmark guide](BODY_BENCHMARKS.md#run-the-fixed-release-configurations).
 
 To run training-objective validation, configure a prepared validation dataset
 and enable validation batches:
@@ -129,6 +136,11 @@ predictor's `checkpoint` field or its `--checkpoint` override. See
 example data contracts.
 
 ## Prepared benchmark data
+
+The bundled Body benchmarks use `BodyBenchmarkDataset` with a local NPZ file and
+an official dataset root. Its preparation command creates benchmark labels and
+relative image paths; the dataset constructs crops when read. See the
+[Body preparation steps](BODY_BENCHMARKS.md#prepare-local-benchmark-labels).
 
 `PreparedPoseEvaluationDataset` reads `torch.save({"samples": rows}, path)`.
 Every row contains a stable string `sample_id`, normalized CHW RGB `img`,
@@ -152,8 +164,15 @@ benchmark GT.
 
 ## Body evaluation
 
-Body Pose supports a caller-provided evaluator in the standalone runner and
-`PoseEvaluationCallback`. Configure its import path under `evaluator`:
+`BodyPoseEvaluator` implements the `3dpw` and `emdb` joint protocols, using a
+matching local `BodyJointProjector` asset. The fixed
+[3DPW](configs/eval_body_3dpw.yaml) and [EMDB-1](configs/eval_body_emdb.yaml)
+configurations select the released `body_s240000.ckpt` architecture explicitly.
+The [benchmark guide](BODY_BENCHMARKS.md#joint-protocols-and-interpretation)
+defines joint order, centering, alignment and aggregation for all three metrics.
+
+Body Pose also supports a caller-provided evaluator in the standalone runner and
+`PoseEvaluationCallback`. Configure a custom import path under `evaluator`:
 
 ```yaml
 evaluator:
