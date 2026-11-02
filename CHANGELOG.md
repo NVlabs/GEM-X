@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add optional automatic ViPE camera estimation to Body Motion with
+  `--camera-mode vipe`, using a separate ViPE environment. Run ViPE on the
+  normalized 30 Hz clip and share its intrinsics between Body Pose features and
+  Motion. Retain existing static, background, and supplied-rotation modes, and
+  document the moving-camera workflow and optional script shortcut.
 - Add standalone `gem-eval motion` for native77 final775 on EMDB-1, EMDB-2 and
   3DPW Motion J14, with local raw-data preparation, Body Pose/ViTPose feature
   extraction and raw/Contact-IK comparisons. Optional mesh assets enable EMDB-1

@@ -129,6 +129,15 @@ def build_parser():
     sub.add_argument("--config", required=True, help="Body video release JSON/YAML")
     sub.add_argument("--start", type=float, default=0.0, help="Clip start in seconds")
     sub.add_argument("--duration", type=float, help="Clip duration, at most 60 seconds")
+    sub.add_argument(
+        "--camera-mode",
+        choices=("vipe", "static", "background", "provided"),
+        help="Override camera mode; vipe runs the optional ViPE executable automatically",
+    )
+    sub.add_argument(
+        "--vipe-executable", help="ViPE executable, optionally in a separate environment"
+    )
+    sub.add_argument("--vipe-pipeline", help="ViPE pipeline; defaults to pose_only_long")
     sub.add_argument("--device", default="cpu")
     sub.add_argument("--output", required=True, help="Output .pt with conditions and raw Motion")
     add_motion_output_options(sub)
@@ -216,9 +225,16 @@ def main(argv=None):
     if args.command == "motion-video":
         from .body_video import load_body_video_config, run_body_video
 
+        config = load_body_video_config(args.config)
+        if args.camera_mode is not None:
+            config.setdefault("camera", {})["mode"] = args.camera_mode
+        for name in ("executable", "pipeline"):
+            value = getattr(args, f"vipe_{name}")
+            if value is not None:
+                config.setdefault("camera", {}).setdefault("vipe", {})[name] = value
         result = run_body_video(
             args.input,
-            load_body_video_config(args.config),
+            config,
             device=args.device,
             start=args.start,
             duration=args.duration,

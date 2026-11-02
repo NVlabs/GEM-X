@@ -179,6 +179,9 @@ gem-render --task body --input motion.pt --soma-assets assets/soma \
 
 Body Motion produces camera and world views. This example uses `--postprocess`
 for the Contact/IK correction shown in the films; omit it for raw predictions.
+For a moving camera, add `--camera-mode vipe` and follow the
+[optional ViPE setup](docs/VIPE_CAMERA.md). For a fixed camera, use
+`--camera-mode static`.
 The [Inference guide](docs/DEMO.md) explains input formats, output fields, cached
 prediction, camera handling, and postprocessing.
 
@@ -277,6 +280,7 @@ for configuration and metric definitions.
 | [Installation](docs/INSTALL.md) | Environment setup, SOMA assets, rendering, and Docker |
 | [Pretrained Models](docs/PRETRAINED_MODELS.md) | Checkpoints, detector pairing, and local weight setup |
 | [Inference](docs/DEMO.md) | Image, video, and cached inference; camera adapters and visualization |
+| [ViPE Cameras](docs/VIPE_CAMERA.md) | Optional automatic camera estimation for Body Motion |
 | [Training & Evaluation](docs/TRAINING.md) | Training entry points, prepared examples, validation, and resume |
 | [Body Pose Training](docs/POSE_TRAINING.md) | Body sample format, objectives, and initialization |
 | [Hand Pose Training](docs/HAND_TRAINING.md) | Hand fine-tuning, canonical inputs, and objectives |

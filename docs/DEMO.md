@@ -495,18 +495,35 @@ the whole sequence: `network.max_len: 120` controls local attention while
 identity/scale averaging and world integration span the sequence. RGB is read
 in batches, and models load by stage.
 
-Choose camera rotation handling in the configuration:
+Choose camera handling with `--camera-mode` or `camera.mode` in the configuration.
+For a moving camera, [install ViPE separately](VIPE_CAMERA.md#install-vipe-separately)
+and run:
+
+```bash
+gem-infer motion-video --task body --input video.mp4 \
+  --config docs/configs/body_video_native77.yaml \
+  --camera-mode vipe --vipe-executable /path/to/vipe/.venv/bin/vipe \
+  --device cuda --output motion.pt
+```
+
+GEM runs ViPE automatically on the normalized clip, before Body Pose feature
+extraction. See [ViPE camera setup](VIPE_CAMERA.md) for configuration, the optional
+script shortcut, and camera conventions. For a fixed camera, use
+`--camera-mode static`.
 
 | `camera.mode` | Use when | Required input |
 | --- | --- | --- |
+| `vipe` | The camera moves; estimate rotations and intrinsics automatically | Separate ViPE installation; pinhole video |
 | `background` (default) | Background features support an approximate SIFT/homography rotation estimate | Video; the primary person's confident keypoint hull is masked |
 | `static` | The camera is fixed | No rotations file |
 | `provided` | You have camera rotations | `rotations: rotations.npy`, shaped `[T,3,3]` on the normalized timeline |
 
-The background mode reports an error if background evidence is insufficient.
-Optional `camera.intrinsics` is a constant 3×3 matrix for the normalized image;
-otherwise both feature extraction and Motion use the diagonal-based focal
-estimate.
+ViPE failures and insufficient background evidence report an error without
+silently switching camera modes. Optional `camera.intrinsics` is a constant
+3×3 matrix for the normalized image. Otherwise, feature extraction and Motion
+use ViPE intrinsics in `vipe` mode, or the diagonal-based focal estimate in the
+other modes. The released final775 model uses camera rotations; ViPE camera
+translation and depth do not anchor its predicted world motion to the scene.
 
 The output saves camera/global parameters, contact logits, tracking flags,
 camera diagnostics, and replayable `conditions`. Pass the whole result or its
