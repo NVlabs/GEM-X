@@ -1,6 +1,6 @@
 # Body Pose benchmarks
 
-[Overview](../README.md) · [Evaluation](EVAL.md) · [Pretrained models](PRETRAINED_MODELS.md)
+[Overview](../README.md) · [Evaluation](EVAL.md) · [Motion benchmarks](MOTION_BENCHMARKS.md) · [Pretrained models](PRETRAINED_MODELS.md)
 
 Evaluate `body_s240000.ckpt` on the official 3DPW test split and EMDB-1 with
 the supplied preparation command, fixed configurations and SOMA joint projectors.
@@ -8,7 +8,7 @@ The runner reports MPJPE, PA-MPJPE and scale-MPJPE in millimeters. This guide
 covers single-frame Body Pose. The existing [release table](EVAL.md#gem-pose-body-pose)
 also reports PVE, but this runner does not compute PVE or temporal Motion metrics.
 
-> **Draft release status:** the two joint projector files listed below are
+> **Asset publication status:** the two joint projector files listed below are
 > prepared for review and have not been uploaded to Hugging Face. The projector
 > download command will work after they are published. Each evaluation run needs
 > the matching local projector at the documented path.

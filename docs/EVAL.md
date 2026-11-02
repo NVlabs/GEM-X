@@ -3,14 +3,15 @@
 [Overview](../README.md) · [Training](TRAINING.md) · [Pretrained models](PRETRAINED_MODELS.md) · [Demos](DEMO.md)
 
 Evaluate Body Pose and Hand Pose on prepared image samples with `gem-eval`.
-Evaluate Body Motion on complete sequences with `gem-train motion --validate`.
+Evaluate Body Motion on complete benchmark sequences with `gem-eval motion`.
+Training-objective validation remains available through `gem-train motion --validate`.
 The entry points share metric utilities but use different data contracts:
 
 | Model | Evaluation path | Evaluator |
 | --- | --- | --- |
 | Body Pose | `gem-eval pose --task body` | Built-in [3DPW and EMDB-1 joint benchmarks](BODY_BENCHMARKS.md), or a custom evaluator |
 | Hand Pose | `gem-eval pose --task hand` | Built-in [native SOMA25 evaluator](#native-hand-evaluation) |
-| Body Motion | `gem-train motion --validate` | Caller-provided [sequence evaluator](TRAINING.md#motion-validation) |
+| Body Motion | `gem-eval motion` | Built-in [EMDB and 3DPW Motion benchmarks](MOTION_BENCHMARKS.md) |
 
 Pose video inference applies the image model frame by frame; its benchmark
 interface consumes individual frames.
@@ -48,7 +49,7 @@ sample has equal weight; batch means are not averaged together.
 The [Body Pose benchmark guide](BODY_BENCHMARKS.md) supplies official download
 links, raw-data preparation and fixed configurations for MPJPE, PA-MPJPE and
 scale-MPJPE. The two joint projector downloads are pending publication in this
-draft release. The public runner does not compute the PVE column above.
+release. The Body Pose runner does not compute the PVE column above.
 
 ### GEM-motion: EMDB-2
 
@@ -89,14 +90,23 @@ Metrics pool their individual samples across sequences: 43,129 for the two
 world joint errors and RTE, 43,054 for jitter, and 54,720 foot-contact samples
 for foot sliding. The table uses postprocessed predictions throughout.
 
+The [Motion benchmark guide](MOTION_BENCHMARKS.md) provides official data/model
+download steps, local raw-data preparation, feature extraction and standalone
+raw/Contact-IK evaluation. Motion projector uploads are pending. Its public
+preparation uses official annotation boxes; see the
+[input protocol differences](MOTION_BENCHMARKS.md#input-protocol-and-comparison-with-published-results)
+before comparing newly extracted features with the historical release table.
+
 ### Benchmark results and evaluator interfaces
 
 The tables report the selected checkpoints under the stated benchmark settings.
 Body Pose includes raw-data preparation and joint scoring for 3DPW test and
 EMDB-1; follow the [benchmark guide](BODY_BENCHMARKS.md) for its asset status,
-download instructions and commands. PVE and the temporal Motion benchmarks are
-outside that runner. Motion validation continues to use a caller-provided
-sequence evaluator. The downloaded Motion inference weights are not a native training
+download instructions and commands. PVE is outside that Body Pose runner.
+The standalone [Motion runner](MOTION_BENCHMARKS.md) supports EMDB-1 camera,
+EMDB-2 world and 3DPW Motion J14 evaluation, including optional EMDB mesh metrics.
+Training validation can still use a caller-provided sequence evaluator.
+The downloaded Motion inference weights are not a native training
 checkpoint for `--resume`; see [checkpoint loading modes](PRETRAINED_MODELS.md#initialization-inference-and-full-resume).
 
 ## Commands
@@ -105,16 +115,22 @@ checkpoint for `--resume`; see [checkpoint loading modes](PRETRAINED_MODELS.md#i
 python -m pip install -e '.[eval]'
 gem-eval pose --task body --config docs/configs/eval_body_3dpw.yaml --output body_metrics.json
 gem-eval pose --task hand --config hand_evaluation.yaml --output hand_metrics.json
+gem-eval motion --config docs/configs/eval_motion_native77.yaml \
+  --data-index data/prepared/motion_emdb2/index.json \
+  --output motion_metrics.json --postprocess both
 ```
 
-Use `--checkpoint` to override the configured checkpoint and `--device` to choose
-the execution device. Native checkpoints written by the GEM Pose trainer carry
-their release configuration. Weights without that metadata require an explicit
+For Pose, use `--checkpoint` to override the configured checkpoint. `--device`
+chooses the execution device for either model family. Native checkpoints written
+by the GEM Pose trainer carry their release configuration. Weights without that
+metadata require an explicit
 matching `release` in the predictor configuration. The
 [Hand SOMA25 example](configs/eval_hand_soma25.yaml) uses the built-in native
 Hand evaluator.
 The Body command requires the environment paths and prepared dataset from the
 [Body Pose benchmark guide](BODY_BENCHMARKS.md#run-the-fixed-release-configurations).
+The Motion command requires a prepared sequence index and extracted features;
+follow the [Motion guide](MOTION_BENCHMARKS.md#prepare-full-sequences-and-extract-features).
 
 To run training-objective validation, configure a prepared validation dataset
 and enable validation batches:
@@ -191,13 +207,20 @@ that need aggregation across batches, an evaluator can additionally implement
 merged across the retained samples before summarization. An optional `to(device)`
 method moves evaluator-owned tensors to the prediction device.
 
-## Motion validation
+## Motion benchmark evaluation and validation
+
+`gem-eval motion` loads the released Motion inference checkpoint directly and
+scores complete prepared sequences. Its [benchmark guide](MOTION_BENCHMARKS.md)
+defines dataset preparation, camera inputs, Motion J14 versus SMPL24 joints,
+optional mesh metrics and the raw/PP comparison. `--postprocess` accepts `raw`,
+`pp` or `both` (default). Prediction and Contact/IK use the full continuous
+30 Hz sequence; the GT mask is applied afterward for scoring, before temporal
+differences and metric windows.
 
 Body Motion uses `gem-train motion --validate` with a caller-provided sequence
 evaluator. `MotionEvaluationCallback` collects its per-sequence metric arrays,
-removes distributed sampler duplicates and logs dataset-wide means. The public
-package supplies callback aggregation and shared alignment math; metric definitions,
-benchmark selection and GT preparation belong to the caller's integration.
+removes distributed sampler duplicates and logs dataset-wide means. The callback
+remains available for callers integrating benchmark evaluation into training.
 See [Motion validation](TRAINING.md#motion-validation) for configuration and the
 evaluator's input/output contract.
 
@@ -228,7 +251,7 @@ There is no implicit per-joint visibility weighting or skeleton conversion.
 
 ## Aggregation and online evaluation
 
-The standalone command runs on one configured device. It reports protocol,
+The standalone Pose command runs on one configured device. It reports protocol,
 release, sample count, metric values and per-metric sample counts. Missing
 protocol measurements are JSON null, so missing measurements remain
 distinguishable from zero error.

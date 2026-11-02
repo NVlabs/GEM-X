@@ -235,6 +235,9 @@ W-MPJPE₁₀₀, WA-MPJPE₁₀₀ and foot sliding are in millimeters.
 Jitter uses the reference reporting scale: mean jerk at 30 Hz divided by 10.
 See [evaluation settings and metric definitions](docs/EVAL.md#release-benchmark-results)
 for coverage, alignment and aggregation details.
+The [Motion benchmark guide](docs/MOTION_BENCHMARKS.md) covers raw-data preparation,
+feature extraction and standalone raw/Contact-IK evaluation; projector downloads
+are pending publication. It documents differences from historical input caches.
 
 <a id="training--evaluation"></a>
 
@@ -257,8 +260,8 @@ contracts, example configurations, initialization, and full checkpoint recovery.
 To fine-tune Hand Pose from `egohand_s060000.ckpt`, use the
 [Hand fine-tuning recipe](docs/HAND_TRAINING.md#egohand-fine-tuning).
 
-`gem-eval pose` evaluates Body or Hand Pose; Body Motion uses
-`gem-train motion --validate`. Body Pose includes 3DPW/EMDB-1 joint protocols;
+`gem-eval pose` evaluates Body or Hand Pose; `gem-eval motion` evaluates complete
+EMDB/3DPW Motion sequences. Body Pose includes 3DPW/EMDB-1 joint protocols;
 Hand includes native SOMA25 metrics. Custom Body and Motion evaluators remain
 supported. See [Evaluation](docs/EVAL.md)
 for configuration and metric definitions.
@@ -277,6 +280,7 @@ for configuration and metric definitions.
 | [Hand Pose Training](docs/HAND_TRAINING.md) | Hand fine-tuning, canonical inputs, and objectives |
 | [Evaluation](docs/EVAL.md) | Release benchmark results, metric definitions, and custom evaluators |
 | [Body Pose Benchmarks](docs/BODY_BENCHMARKS.md) | Official downloads, raw-data preparation, and 3DPW/EMDB-1 joint evaluation |
+| [Motion Benchmarks](docs/MOTION_BENCHMARKS.md) | Sequence preparation, feature extraction, raw/Contact-IK evaluation, and optional mesh metrics |
 | [Model Overview](docs/MODEL_OVERVIEW.md) | Model architectures, conditioning, and outputs |
 | [Architecture](docs/ARCHITECTURE.md) | Package structure and component responsibilities |
 

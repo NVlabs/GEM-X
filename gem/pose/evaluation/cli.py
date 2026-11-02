@@ -5,12 +5,20 @@
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("model", choices=("pose",))
+    argv = sys.argv[1:] if argv is None else list(argv)
+    if argv and argv[0] == "motion":
+        from gem.motion.evaluation.cli import main as motion_main
+
+        return motion_main(argv[1:])
+    parser = argparse.ArgumentParser(
+        description=__doc__, epilog="For temporal Motion: gem-eval motion --help"
+    )
+    parser.add_argument("model", choices=("pose", "motion"))
     parser.add_argument("--task", choices=("body", "hand"), required=True)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path, help="Override predictor checkpoint in config")

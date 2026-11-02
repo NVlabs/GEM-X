@@ -23,9 +23,11 @@ include docs/ARCHITECTURE.md docs/DEMO.md docs/INSTALL.md docs/MODEL_OVERVIEW.md
 include docs/PRETRAINED_MODELS.md
 include docs/TRAINING.md docs/POSE_TRAINING.md docs/HAND_TRAINING.md docs/EVAL.md
 include docs/BODY_BENCHMARKS.md
+include docs/MOTION_BENCHMARKS.md
 include docs/configs/body_video_native29.yaml docs/configs/body_video_native77.yaml
 include docs/configs/eval_hand_soma25.yaml docs/configs/hand_finetune.yaml
 include docs/configs/eval_body_3dpw.yaml docs/configs/eval_body_emdb.yaml
+include docs/configs/eval_motion_native77.yaml
 include docs/configs/motion_mixed_example.yaml
 include docs/configs/pose_body_example.yaml docs/configs/pose_hand_example.yaml
 include tests/test_installation.py tests/pose/test_pose_api.py tests/pose/test_training_cli.py
@@ -43,6 +45,8 @@ include tests/pose/test_hand_ga.py tests/pose/test_hand_ga_inference.py
 include tests/pose/test_fixed_depth_translation.py
 include tests/motion/test_batch_pack.py tests/motion/test_training_time.py
 include tests/motion/test_evaluation.py tests/motion/test_cache_data.py
+include tests/motion/test_benchmark_metrics.py tests/motion/test_benchmark_geometry.py
+include tests/motion/test_benchmark_runner.py tests/motion/test_prepare_benchmarks.py
 include tests/inference/test_entrypoints.py
 include tests/common/test_camera_adapters.py
 include tests/inference/test_hand_inputs.py tests/inference/test_pose_camera_adapters.py
