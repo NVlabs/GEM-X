@@ -28,7 +28,7 @@ def _full_precision_matmul(device):
 
 
 class SomaJointRegressor(nn.Module):
-    """Use a named direct/tetrahedral-barycentric joint regressor asset.
+    """Use a named joint regressor from a benchmark bundle or standalone asset.
 
     The loaded asset owns source topology and joint ordering. ``tet_bary``
     evaluates its extra face points as ``p3=f0+cross(f1-f0,f2-f0)`` before the
@@ -46,10 +46,22 @@ class SomaJointRegressor(nn.Module):
     ):
         super().__init__()
         asset = torch.load(asset_path, map_location="cpu", weights_only=True)
-        if asset["schema"] != "gvhmr_soma_to_target_joints_asset_v1":
+        self.target_joint_set = expected_target_joint_set
+        self.target_num_joints = JOINT_COUNTS[expected_target_joint_set]
+        if asset["schema"] == "gem_benchmark_projectors_v1":
+            if expected_target_joint_set not in asset["joint_regressors"]:
+                raise ValueError("Joint asset does not match the requested benchmark joint set")
+            matrix = asset["joint_regressors"][expected_target_joint_set]
+            self.mode = "tet_bary"
+        elif asset["schema"] == "gvhmr_soma_to_target_joints_asset_v1":
+            if asset["target_joint_set"] != expected_target_joint_set:
+                raise ValueError("Joint asset does not match the requested benchmark joint set")
+            if asset["target_num_joints"] != self.target_num_joints:
+                raise ValueError("Joint regressor dimensions do not match its named topology")
+            matrix = asset["joint_regressor"]
+            self.mode = asset["mode"]
+        else:
             raise ValueError("Unknown SOMA benchmark joint asset schema")
-        if asset["target_joint_set"] != expected_target_joint_set:
-            raise ValueError("Joint asset does not match the requested benchmark joint set")
         if (
             expected_source_topology is not None
             and asset["source_topology"] != expected_source_topology
@@ -57,25 +69,18 @@ class SomaJointRegressor(nn.Module):
             raise ValueError("Joint asset does not match the expected SOMA topology")
         if expected_asset_version is not None and asset["asset_version"] != expected_asset_version:
             raise ValueError("Joint asset version does not match the configured version")
-        self.target_joint_set = expected_target_joint_set
-        self.target_num_joints = JOINT_COUNTS[expected_target_joint_set]
         self.source_num_vertices = asset["source_num_vertices"]
         self.source_topology = asset["source_topology"]
         self.asset_version = asset["asset_version"]
-        self.mode = asset["mode"]
         if self.mode not in {"direct", "tet_bary"}:
             raise ValueError(f"Unknown SOMA benchmark regressor mode {self.mode!r}")
-        matrix = asset["joint_regressor"]
         faces = (
             asset["face_vertex_indices"]
             if self.mode == "tet_bary"
             else torch.empty(0, 3, dtype=torch.long)
         )
         width = self.source_num_vertices + (len(faces) if self.mode == "tet_bary" else 0)
-        if asset["target_num_joints"] != self.target_num_joints or matrix.shape != (
-            self.target_num_joints,
-            width,
-        ):
+        if matrix.shape != (self.target_num_joints, width):
             raise ValueError("Joint regressor dimensions do not match its named topology")
         self.register_buffer("joint_regressor", matrix.float().contiguous(), persistent=False)
         self.register_buffer("face_vertex_indices", faces.long().contiguous(), persistent=False)
@@ -100,8 +105,8 @@ class SomaJointRegressor(nn.Module):
 class SomaMeshProjector(nn.Module):
     """Reconstruct SMPL-topology vertices without fitting or nearest-neighbour search.
 
-    The four mapping files are also used to compose SOMA joint
-    regressors. The fourth tetrahedron point is ``p0 + cross(p1-p0, p2-p0)``;
+    Load an EMDB benchmark bundle or a directory with four mapping files.
+    The fourth tetrahedron point is ``p0 + cross(p1-p0, p2-p0)``;
     the original barycentric weights, including negative weights, are applied
     unchanged. Inputs and outputs use the same metre coordinate convention as
     the current SOMA eval joint adapter. Interpolation is accumulated in FP64
@@ -115,15 +120,25 @@ class SomaMeshProjector(nn.Module):
         if source_num_vertices <= 0 or chunk_size <= 0:
             raise ValueError("source_num_vertices and chunk_size must be positive")
         assets_dir = Path(assets_dir)
-        tensors = {
-            name: torch.load(assets_dir / f"{name}.pt", map_location="cpu", weights_only=True)
-            for name in (
-                "face_vertex_indices",
-                "tet_vertex_indices",
-                "smpl_vertex_face_ids",
-                "smpl_vertex_barycentric",
-            )
-        }
+        if assets_dir.is_dir():
+            tensors = {
+                name: torch.load(assets_dir / f"{name}.pt", map_location="cpu", weights_only=True)
+                for name in (
+                    "face_vertex_indices",
+                    "tet_vertex_indices",
+                    "smpl_vertex_face_ids",
+                    "smpl_vertex_barycentric",
+                )
+            }
+        else:
+            asset = torch.load(assets_dir, map_location="cpu", weights_only=True)
+            if asset["schema"] != "gem_benchmark_projectors_v1":
+                raise ValueError("Unknown SOMA benchmark mesh asset schema")
+            if "mesh" not in asset:
+                raise ValueError("Benchmark projector bundle does not include mesh projection")
+            if asset["source_num_vertices"] != source_num_vertices:
+                raise ValueError("Mesh asset does not match the declared SOMA topology")
+            tensors = {"face_vertex_indices": asset["face_vertex_indices"], **asset["mesh"]}
         faces, tets = tensors["face_vertex_indices"], tensors["tet_vertex_indices"]
         face_ids, weights = tensors["smpl_vertex_face_ids"], tensors["smpl_vertex_barycentric"]
         if faces.dtype != torch.int64 or faces.ndim != 2 or faces.shape[1] != 3 or len(faces) == 0:

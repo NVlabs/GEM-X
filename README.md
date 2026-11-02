@@ -219,7 +219,7 @@ millimeters; lower is better.
 
 The [Body Pose benchmark guide](docs/BODY_BENCHMARKS.md) covers official dataset
 downloads, local preparation and fixed 3DPW/EMDB-1 joint evaluation configurations.
-Projector downloads are pending publication; the joint runner does not compute PVE.
+The joint runner does not compute PVE.
 
 ### GEM-motion · Body Motion
 
@@ -236,8 +236,10 @@ Jitter uses the reference reporting scale: mean jerk at 30 Hz divided by 10.
 See [evaluation settings and metric definitions](docs/EVAL.md#release-benchmark-results)
 for coverage, alignment and aggregation details.
 The [Motion benchmark guide](docs/MOTION_BENCHMARKS.md) covers raw-data preparation,
-feature extraction and standalone raw/Contact-IK evaluation; projector downloads
-are pending publication. It documents differences from historical input caches.
+feature extraction and standalone raw/Contact-IK evaluation. It documents
+differences from historical input caches.
+Both tasks use the [shared projector bundle](https://huggingface.co/nvidia/GEM-X/tree/main/evaluation/projectors_v1):
+`emdb_projector.pt` and `3dpw_projector.pt`.
 
 <a id="training--evaluation"></a>
 

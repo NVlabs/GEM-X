@@ -8,6 +8,7 @@ import pytest
 import torch
 
 from gem.motion.evaluation.geometry import SomaJointRegressor, SomaMeshProjector
+from gem.pose.evaluation.body import BodyJointProjector
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -45,6 +46,29 @@ def joint_asset(tmp_path, target="smpl24", mode="tet_bary"):
     return path
 
 
+def joint_bundle(tmp_path, target="smpl24"):
+    legacy_path = joint_asset(tmp_path, target)
+    legacy = torch.load(legacy_path, weights_only=True)
+    benchmark = "emdb" if target == "smpl24" else "3dpw"
+    regressors = {target: legacy["joint_regressor"]}
+    if benchmark == "3dpw":
+        regressors["smpl44"] = torch.zeros(44, 5)
+    path = tmp_path / f"{benchmark}_projectors.pt"
+    torch.save(
+        {
+            "schema": "gem_benchmark_projectors_v1",
+            "benchmark": benchmark,
+            "source_num_vertices": legacy["source_num_vertices"],
+            "source_topology": legacy["source_topology"],
+            "asset_version": "gem-eval-projectors-v1",
+            "face_vertex_indices": legacy["face_vertex_indices"],
+            "joint_regressors": regressors,
+        },
+        path,
+    )
+    return path
+
+
 @pytest.mark.parametrize("joint_set", ["smpl24", "3dpw_j14"])
 @pytest.mark.parametrize("mode", ["direct", "tet_bary"])
 def test_joint_projection_topology_signed_weights_and_area_scaling(tmp_path, joint_set, mode):
@@ -61,17 +85,47 @@ def test_joint_projection_topology_signed_weights_and_area_scaling(tmp_path, joi
     assert projector.state_dict() == {}
 
 
-def test_joint_projection_rejects_wrong_target_topology_and_matrix_shape(tmp_path):
-    path = joint_asset(tmp_path)
+@pytest.mark.parametrize("joint_set", ["smpl24", "3dpw_j14"])
+def test_joint_bundle_preserves_motion_regressor_and_pose_protocol(tmp_path, joint_set):
+    path = joint_bundle(tmp_path, joint_set)
+    projector = SomaJointRegressor(
+        path,
+        joint_set,
+        expected_source_topology="fixture3",
+        expected_asset_version="gem-eval-projectors-v1",
+    )
+    legacy = SomaJointRegressor(tmp_path / f"{joint_set}.pt", joint_set)
+    vertices = torch.randn(2, 3, 3, 3, generator=torch.Generator().manual_seed(83))
+    output = projector(vertices)
+    torch.testing.assert_close(output, legacy(vertices), atol=0, rtol=0)
+    pose_output = BodyJointProjector.from_asset(path)(vertices)
+    if joint_set == "smpl24":
+        torch.testing.assert_close(output, pose_output, atol=0, rtol=0)
+    else:
+        assert output.shape == (2, 3, 14, 3)
+        assert pose_output.shape == (2, 3, 44, 3)
+        assert bool(output.any())
+        assert not bool(pose_output.any())
+    assert projector.state_dict() == {}
+
+
+@pytest.mark.parametrize("bundle", [False, True])
+def test_joint_projection_rejects_wrong_target_topology_and_matrix_shape(tmp_path, bundle):
+    path = joint_bundle(tmp_path) if bundle else joint_asset(tmp_path)
     with pytest.raises(ValueError, match="benchmark joint set"):
         SomaJointRegressor(path, "3dpw_j14")
     with pytest.raises(ValueError, match="SOMA topology"):
         SomaJointRegressor(path, "smpl24", expected_source_topology="another_mesh")
+    with pytest.raises(ValueError, match="configured version"):
+        SomaJointRegressor(path, "smpl24", expected_asset_version="another-version")
     projector = SomaJointRegressor(path, "smpl24")
     with pytest.raises(ValueError, match="Expected SOMA vertices"):
         projector(torch.zeros(2, 4, 3))
     asset = torch.load(path, weights_only=True)
-    asset["joint_regressor"] = asset["joint_regressor"][:, :-1]
+    if bundle:
+        asset["joint_regressors"]["smpl24"] = asset["joint_regressors"]["smpl24"][:, :-1]
+    else:
+        asset["joint_regressor"] = asset["joint_regressor"][:, :-1]
     torch.save(asset, path)
     with pytest.raises(ValueError, match="dimensions"):
         SomaJointRegressor(path, "smpl24")
@@ -129,3 +183,46 @@ def test_mesh_projection_preserves_translation_once_and_rejects_bad_assets(tmp_p
     torch.save(tets, path)
     with pytest.raises(ValueError, match="tetrahedra"):
         SomaMeshProjector(tmp_path, source_num_vertices=6)
+
+
+def test_mesh_bundle_preserves_legacy_signed_interpolation(tmp_path):
+    mesh_assets(tmp_path)
+    tensors = {
+        name: torch.load(tmp_path / f"{name}.pt", weights_only=True)
+        for name in (
+            "face_vertex_indices",
+            "tet_vertex_indices",
+            "smpl_vertex_face_ids",
+            "smpl_vertex_barycentric",
+        )
+    }
+    path = tmp_path / "emdb_projectors.pt"
+    torch.save(
+        {
+            "schema": "gem_benchmark_projectors_v1",
+            "benchmark": "emdb",
+            "source_num_vertices": 6,
+            "source_topology": "fixture6",
+            "asset_version": "gem-eval-projectors-v1",
+            "face_vertex_indices": tensors.pop("face_vertex_indices"),
+            "joint_regressors": {"smpl24": torch.zeros(24, 8)},
+            "mesh": tensors,
+        },
+        path,
+    )
+    vertices = torch.randn(2, 3, 6, 3, generator=torch.Generator().manual_seed(89)) + 1000
+    legacy = SomaMeshProjector(tmp_path, source_num_vertices=6, chunk_size=2)
+    projector = SomaMeshProjector(path, source_num_vertices=6, chunk_size=1)
+    with torch.autocast("cpu", dtype=torch.bfloat16):
+        output = projector(vertices)
+    torch.testing.assert_close(output, legacy(vertices), atol=0, rtol=0)
+    assert output.dtype == torch.float32
+    assert projector.state_dict() == {}
+    with pytest.raises(ValueError, match="declared SOMA topology"):
+        SomaMeshProjector(path, source_num_vertices=7)
+
+
+def test_mesh_projection_rejects_bundle_without_mesh(tmp_path):
+    path = joint_bundle(tmp_path, "3dpw_j14")
+    with pytest.raises(ValueError, match="does not include mesh projection"):
+        SomaMeshProjector(path, source_num_vertices=3)

@@ -33,8 +33,9 @@ def _full_precision_matmul(device):
 class BodyJointProjector(nn.Module):
     """Project local mesh vertices into the asset's complete benchmark joint order.
 
-    Assets contain ``matrix[J,V]``, ``source_num_vertices`` and optionally
-    ``face_vertex_indices[F,3]``. With faces, the matrix has width ``V+F``;
+    Standalone assets contain ``matrix[J,V]``, ``source_num_vertices`` and
+    optionally ``face_vertex_indices[F,3]``. Benchmark bundles supply a named
+    regressor and shared faces. With faces, the matrix has width ``V+F``;
     each extra point is ``v0 + cross(v1-v0, v2-v0)`` for that triangle.
     Projection uses FP32 without autocast or TF32. Asset buffers are not saved
     as model weights.
@@ -62,8 +63,16 @@ class BodyJointProjector(nn.Module):
 
     @classmethod
     def from_asset(cls, path):
-        """Load a local tensor asset such as ``emdb_projector.pt``."""
-        return cls(**torch.load(path, map_location="cpu", weights_only=True))
+        """Load a benchmark bundle or a legacy standalone Body joint asset."""
+        asset = torch.load(path, map_location="cpu", weights_only=True)
+        if asset.get("schema") == "gem_benchmark_projectors_v1":
+            joint_set = {"emdb": "smpl24", "3dpw": "smpl44"}[asset["benchmark"]]
+            return cls(
+                asset["joint_regressors"][joint_set],
+                asset["source_num_vertices"],
+                asset["face_vertex_indices"],
+            )
+        return cls(**asset)
 
     def forward(self, vertices):
         if vertices.shape[-2:] != (self.source_num_vertices, 3):

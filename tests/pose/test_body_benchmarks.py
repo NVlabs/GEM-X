@@ -60,6 +60,42 @@ def test_tetra_projection_keeps_signed_weights_and_deformed_face_points(tmp_path
     assert not projector.state_dict()
 
 
+@pytest.mark.parametrize(
+    "benchmark,joint_set,count", [("emdb", "smpl24", 24), ("3dpw", "smpl44", 44)]
+)
+def test_benchmark_bundle_selects_complete_pose_joints(tmp_path, benchmark, joint_set, count):
+    matrix = torch.randn(count, 4, generator=torch.Generator().manual_seed(23))
+    faces = torch.tensor([[0, 1, 2]])
+    legacy_path = tmp_path / "legacy.pt"
+    torch.save(
+        {"matrix": matrix, "source_num_vertices": 3, "face_vertex_indices": faces},
+        legacy_path,
+    )
+    bundle_path = tmp_path / f"{benchmark}_projectors.pt"
+    regressors = {joint_set: matrix}
+    if benchmark == "3dpw":
+        regressors["3dpw_j14"] = torch.zeros(14, 4)
+    torch.save(
+        {
+            "schema": "gem_benchmark_projectors_v1",
+            "benchmark": benchmark,
+            "source_num_vertices": 3,
+            "source_topology": "fixture3",
+            "asset_version": "gem-eval-projectors-v1",
+            "face_vertex_indices": faces,
+            "joint_regressors": regressors,
+        },
+        bundle_path,
+    )
+    vertices = torch.randn(2, 3, 3, 3, generator=torch.Generator().manual_seed(27))
+    bundle_projector = BodyJointProjector.from_asset(bundle_path)
+    legacy_projector = BodyJointProjector.from_asset(legacy_path)
+    output = bundle_projector(vertices)
+    assert output.shape == (2, 3, count, 3)
+    torch.testing.assert_close(output, legacy_projector(vertices), atol=0, rtol=0)
+    assert not bundle_projector.state_dict()
+
+
 def test_direct_projector_preserves_leading_dimensions():
     matrix = torch.zeros(44, 4)
     matrix[:, 1] = 0.25

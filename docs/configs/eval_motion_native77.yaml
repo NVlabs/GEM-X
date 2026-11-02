@@ -43,8 +43,8 @@ motion:
 evaluation:
   soma_assets: ${oc.env:GEM_SOMA_ASSETS}
   joint_projectors:
-    smpl24: ${oc.env:GEM_MOTION_EVAL_ASSETS}/smpl24.pt
-    3dpw_j14: ${oc.env:GEM_MOTION_EVAL_ASSETS}/3dpw_j14.pt
+    smpl24: ${oc.env:GEM_EVAL_ASSETS}/emdb_projector.pt
+    3dpw_j14: ${oc.env:GEM_EVAL_ASSETS}/3dpw_projector.pt
   # Set null for joint-only scoring. PVE/foot sliding also need --include-mesh
   # during target preparation, supplying matching local ground-truth vertices.
-  mesh_projector: ${oc.env:GEM_MOTION_EVAL_ASSETS}/mesh_projector
+  mesh_projector: ${oc.env:GEM_EVAL_ASSETS}/emdb_projector.pt

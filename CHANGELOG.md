@@ -6,11 +6,13 @@
   3DPW Motion J14, with local raw-data preparation, Body Pose/ViTPose feature
   extraction and raw/Contact-IK comparisons. Optional mesh assets enable EMDB-1
   PVE/acceleration and EMDB-2 foot sliding. Document annotation-box and mask
-  differences from historical cached inputs; projector publication is pending.
+  differences from historical cached inputs.
 - Add Body Pose 3DPW-test and EMDB-1 joint evaluation, with official dataset/model
   download guidance, local raw-data preparation and fixed `body_s240000.ckpt`
   configurations. Report MPJPE, PA-MPJPE and scale-MPJPE; PVE is outside this
-  runner. Joint projector downloads are pending publication.
+  runner.
+- Provide shared `emdb_projector.pt` and `3dpw_projector.pt` downloads for Body
+  Pose and Motion, including optional EMDB mesh metrics for Motion.
 - Run Body Pose on images or videos without supplied boxes, reusing YOLOX
   person detection and ByteTrack for the primary person. Preserve source video
   timing and retain explicit boxes for caller-selected or multiple people.

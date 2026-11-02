@@ -7,8 +7,8 @@ MPJPE, PA-MPJPE and scale-MPJPE in millimeters; Body Pose PVE is not included.
 Run commands from the checkout root. Once inputs are ready, each dataset needs
 one preparation command and one evaluation command.
 
-> **Projectors await publication on Hugging Face.** The download commands below
-> become usable after publication; until then, matching local projectors are required.
+Body Pose and Motion share the [two-file projector bundle](https://huggingface.co/nvidia/GEM-X/tree/main/evaluation/projectors_v1):
+`emdb_projector.pt` and `3dpw_projector.pt`. Each evaluator selects its protocol.
 
 <a id="obtain-the-official-datasets-and-smpl-models"></a>
 
@@ -17,7 +17,7 @@ one preparation command and one evaluation command.
 ```bash
 python -m pip install -e '.[eval,benchmark]'
 hf download nvidia/GEM-X body_s240000.ckpt --local-dir weights
-hf download nvidia/GEM-X --include 'evaluation/body_pose_v1/*' --local-dir weights
+hf download nvidia/GEM-X --include 'evaluation/projectors_v1/*' --local-dir weights
 ```
 
 Download only the datasets you want to evaluate. **SOMA is used for predictions;
@@ -57,7 +57,7 @@ Set the paths used by the evaluation configurations; adjust them to your downloa
 ```bash
 export GEM_POSE_CHECKPOINT="$PWD/weights/body_s240000.ckpt"
 export GEM_SOMA_ASSETS="$PWD/assets/soma"
-export GEM_EVAL_ASSETS="$PWD/weights/evaluation/body_pose_v1"
+export GEM_EVAL_ASSETS="$PWD/weights/evaluation/projectors_v1"
 export GEM_3DPW_ROOT="$PWD/data/3dpw"
 export GEM_3DPW_PREPARED="$PWD/data/prepared/body_3dpw_test.npz"
 export GEM_EMDB_ROOT="$PWD/data/emdb"
@@ -65,7 +65,7 @@ export GEM_EMDB_PREPARED="$PWD/data/prepared/body_emdb1.npz"
 ```
 
 `hf download --local-dir weights` preserves the projector subdirectory;
-`GEM_EVAL_ASSETS` must point to `weights/evaluation/body_pose_v1/`.
+`GEM_EVAL_ASSETS` must point to `weights/evaluation/projectors_v1/` for both tasks.
 
 <a id="prepare-local-benchmark-labels"></a>
 
@@ -110,8 +110,8 @@ EMDB-1**. Each retained person-image has equal weight. See the
 <details>
 <summary>Protocol reference</summary>
 
-- **3DPW:** `3dpw_projector.pt` produces 44 joints; score indices 25–37 and 43,
-  centered on joint 39. These are the 14 joints used by the Body Pose protocol.
+- **3DPW:** `3dpw_projector.pt` supplies Body Pose's 44-joint matrix. Score
+  indices 25–37 and 43, centered on joint 39, for the 14-joint Body Pose protocol.
 - **EMDB:** `emdb_projector.pt` produces SMPL24; score all joints, centered on
   the midpoint of hips 1 and 2. Indices start at zero.
 - Projectors expect SOMA MID meshes with 18,056 vertices in meters. The supplied

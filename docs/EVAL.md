@@ -48,8 +48,9 @@ sample has equal weight; batch means are not averaged together.
 
 The [Body Pose benchmark guide](BODY_BENCHMARKS.md) supplies official download
 links, raw-data preparation and fixed configurations for MPJPE, PA-MPJPE and
-scale-MPJPE. The two joint projector downloads are pending publication in this
-release. The Body Pose runner does not compute the PVE column above.
+scale-MPJPE. The Body Pose runner does not compute the PVE column above.
+Body Pose and Motion share the [two-file projector bundle](https://huggingface.co/nvidia/GEM-X/tree/main/evaluation/projectors_v1),
+with the appropriate joint protocol selected by each evaluator.
 
 ### GEM-motion: EMDB-2
 
@@ -92,8 +93,7 @@ for foot sliding. The table uses postprocessed predictions throughout.
 
 The [Motion benchmark guide](MOTION_BENCHMARKS.md) provides official data/model
 download steps, local raw-data preparation, feature extraction and standalone
-raw/Contact-IK evaluation. Motion projector uploads are pending. Its public
-preparation uses official annotation boxes; see the
+raw/Contact-IK evaluation. Its preparation uses official annotation boxes; see the
 [input protocol differences](MOTION_BENCHMARKS.md#input-protocol-and-comparison-with-published-results)
 before comparing newly extracted features with the historical release table.
 
@@ -101,8 +101,8 @@ before comparing newly extracted features with the historical release table.
 
 The tables report the selected checkpoints under the stated benchmark settings.
 Body Pose includes raw-data preparation and joint scoring for 3DPW test and
-EMDB-1; follow the [benchmark guide](BODY_BENCHMARKS.md) for its asset status,
-download instructions and commands. PVE is outside that Body Pose runner.
+EMDB-1; follow the [benchmark guide](BODY_BENCHMARKS.md) for download instructions
+and commands. PVE is outside that Body Pose runner.
 The standalone [Motion runner](MOTION_BENCHMARKS.md) supports EMDB-1 camera,
 EMDB-2 world and 3DPW Motion J14 evaluation, including optional EMDB mesh metrics.
 Training validation can still use a caller-provided sequence evaluator.

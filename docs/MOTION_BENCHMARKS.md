@@ -7,8 +7,8 @@ EMDB-2 or 3DPW sequences. Each dataset needs one preparation command and one
 `gem-eval motion` command; results include raw and Contact/IK variants.
 Run commands from the checkout root.
 
-> **Projectors await publication on Hugging Face.** Their download command below
-> becomes usable after publication; matching local assets are required to run now.
+Body Pose and Motion share the [two-file projector bundle](https://huggingface.co/nvidia/GEM-X/tree/main/evaluation/projectors_v1):
+`emdb_projector.pt` and `3dpw_projector.pt`. Each evaluator selects its protocol.
 
 ## 1. Prepare inputs
 
@@ -18,7 +18,7 @@ Install dependencies and download the matching weights and projector bundle:
 python -m pip install -e '.[eval,benchmark]'
 hf download nvidia/GEM-X body_s240000.ckpt vitpose.pth \
   motion_native77_e774_s292175.ckpt motion_stats_raw.npz --local-dir weights
-hf download nvidia/GEM-X --include 'evaluation/motion_v1/*' --local-dir weights
+hf download nvidia/GEM-X --include 'evaluation/projectors_v1/*' --local-dir weights
 ```
 
 Use the [shared dataset and SMPL download table](BODY_BENCHMARKS.md#obtain-the-official-datasets-and-smpl-models):
@@ -45,7 +45,7 @@ export GEM_VITPOSE_CHECKPOINT="$PWD/weights/vitpose.pth"
 export GEM_MOTION_CHECKPOINT="$PWD/weights/motion_native77_e774_s292175.ckpt"
 export GEM_MOTION_STATS="$PWD/weights/motion_stats_raw.npz"
 export GEM_SOMA_ASSETS="$PWD/assets/soma"
-export GEM_MOTION_EVAL_ASSETS="$PWD/weights/evaluation/motion_v1"
+export GEM_EVAL_ASSETS="$PWD/weights/evaluation/projectors_v1"
 ```
 
 <a id="input-protocol-and-comparison-with-published-results"></a>
@@ -132,8 +132,8 @@ sequences. See [metric definitions](EVAL.md#gem-motion-emdb-2).
 - Preparation's `--batch-size` controls GT generation. Set `pose.batch_size`
   and `observations.batch_size` in the YAML to control feature-extraction memory.
 - For joint-only scoring, set `evaluation.mesh_projector: null` and omit
-  `--include-mesh` during preparation. PVE and foot sliding need the complete
-  mesh projector directory and locally generated GT vertices.
+  `--include-mesh` during preparation. PVE and foot sliding use
+  `emdb_projector.pt` and locally generated GT vertices.
 
 </details>
 
@@ -159,8 +159,9 @@ features again after changing boxes or rerunning target preparation.
 
 EMDB uses SMPL24 with hips 1/2 as the pelvis; Motion 3DPW uses its separate J14
 order with hips 2/3. Both use SOMA MID18056 geometry without pose correctives.
-Do not substitute the Body Pose projector. The Motion bundle includes
-`smpl24.pt`, `3dpw_j14.pt`, and the complete `mesh_projector/` directory.
+Both tasks use `emdb_projector.pt`, which also includes the optional mesh
+projection for PVE and foot sliding. `3dpw_projector.pt` contains separate
+Body Pose 44-joint and Motion J14 matrices; each evaluator selects its own.
 
 JSON names `wa2_mpjpe`, `waa_mpjpe` and `fs` mean W-MPJPE100, WA-MPJPE100 and
 foot sliding. Distances are in mm, `rte` in percent, `accel` in m/s², and `jitter`
